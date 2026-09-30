@@ -67,14 +67,134 @@ variable "execution_environment" {
   default     = "Development"
 }
 
-# ── Secrets Manager ──────────────────────────────────────────────────
+# ── Secrets Manager (managed manually) ──────────────────────────────
 
 variable "invoicing_invoices_db_secret_name" {
-  description = "Secrets Manager secret name con la conexión a PostgreSQL de facturación (managed manually)"
+  description = "Secreto con la conexión a la base de datos de invoicing-invoices"
   type        = string
 }
 
 variable "invoicing_invoices_app_secret_name" {
-  description = "Secrets Manager secret name con la configuración JwtAuth del API de facturas (managed manually)"
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-invoices"
+  type        = string
+}
+
+variable "invoicing_config_approvers_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de invoicing-config-approvers"
+  type        = string
+}
+
+variable "invoicing_config_approvers_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-config-approvers"
+  type        = string
+}
+
+variable "invoicing_approval_tray_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de invoicing-approval-tray"
+  type        = string
+}
+
+variable "invoicing_approval_tray_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-approval-tray"
+  type        = string
+}
+
+variable "invoicing_approvals_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de invoicing-approvals"
+  type        = string
+}
+
+variable "invoicing_approvals_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-approvals"
+  type        = string
+}
+
+variable "invoicing_sap_sync_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de invoicing-sap-sync"
+  type        = string
+}
+
+variable "invoicing_sap_sync_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-sap-sync"
+  type        = string
+}
+
+variable "master_data_service_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de master-data-service"
+  type        = string
+}
+
+variable "master_data_service_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de master-data-service"
+  type        = string
+}
+
+variable "master_data_sync_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de master-data-sync"
+  type        = string
+}
+
+variable "master_data_sync_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de master-data-sync"
+  type        = string
+}
+
+variable "invoicing_notifications_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de invoicing-notifications"
+  type        = string
+}
+
+variable "invoicing_notifications_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de invoicing-notifications"
+  type        = string
+}
+
+variable "voucher_management_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de voucher-management"
+  type        = string
+}
+
+variable "voucher_management_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de voucher-management"
+  type        = string
+}
+
+variable "voucher_models_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de voucher-models"
+  type        = string
+}
+
+variable "voucher_models_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de voucher-models"
+  type        = string
+}
+
+variable "voucher_reasons_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de voucher-reasons"
+  type        = string
+}
+
+variable "voucher_reasons_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de voucher-reasons"
+  type        = string
+}
+
+variable "document_generation_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de document-generation"
+  type        = string
+}
+
+variable "document_generation_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de document-generation"
+  type        = string
+}
+
+variable "voucher_redemption_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de voucher-redemption"
+  type        = string
+}
+
+variable "voucher_redemption_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de voucher-redemption"
   type        = string
 }
