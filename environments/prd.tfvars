@@ -43,3 +43,6 @@ voucher_redemption_db_secret_name          = "delosi-alfie-prd/voucher-redemptio
 voucher_redemption_app_secret_name         = "delosi-alfie-prd/voucher-redemption-app"
 audit_db_secret_name                       = "delosi-alfie-prd/audit-db"
 audit_app_secret_name                      = "delosi-alfie-prd/audit-app"
+
+# ── Storage ───────────────────────────────────────────────────────────
+documents_bucket_name = "delosi-alfie-documents-prd"

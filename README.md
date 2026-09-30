@@ -59,7 +59,16 @@ Tres colas con su DLQ en `sqs.tf`, con la receta `modules/sqs`. Nombre en AWS: `
 
 La receta de lambda crea el event source mapping y el permiso de **lectura** del consumidor. El permiso de **escritura** del que publica no tiene receta: hay que resolverlo con DevOps antes de que `invoicing-approvals` y `voucher-management` puedan enviar mensajes. Las URLs de las colas les llegan en `Sqs__SapSyncQueueUrl` y `Sqs__DocumentGenerationQueueUrl`.
 
-Lo que todavía no se gestiona aquí: bucket S3 de PDFs, EventBridge, SES y WAF.
+## Permisos
+
+| Lambda | Qué tiene | Dónde |
+|---|---|---|
+| `document-generation` | Permiso de escritura en el bucket `documents_bucket_name` | `enable_s3_permissions` |
+| `invoicing-notifications` | Permiso para enviar correos por SES | `enable_ses_permissions` |
+
+El bucket de PDFs no lo crea este repo: `delosi-alfie-documents-{env}` lo crea DevOps a mano.
+
+Lo que no se gestiona aquí (sin receta): bucket S3, EventBridge, WAF y la configuración de SES (dominio y remitentes verificados).
 
 ## Secretos
 

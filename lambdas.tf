@@ -282,6 +282,9 @@ module "invoicing_notifications" {
     var.invoicing_notifications_app_secret_name,
   ]
 
+  # Envía los correos de facturas y vales por Amazon SES
+  enable_ses_permissions = true
+
   tracing_mode = "Active"
   tags         = local.common_tags
 }
@@ -420,6 +423,11 @@ module "document_generation" {
       batch_size       = 1
     }
   ]
+
+  # Guarda los PDF en S3. El bucket no lo crea este repo (no hay receta): lo crea
+  # DevOps. La receta le pasa el nombre al lambda en S3_BUCKET_NAME.
+  enable_s3_permissions = true
+  s3_bucket_names       = [var.documents_bucket_name]
 
   tracing_mode = "Active"
   tags         = local.common_tags
