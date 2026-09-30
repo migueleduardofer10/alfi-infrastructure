@@ -103,7 +103,30 @@ output "voucher_redemption_function_arn" {
 }
 
 
+output "audit_function_name" {
+  value = module.audit.function_name
+}
+
+output "audit_function_arn" {
+  value = module.audit.function_arn
+}
+
 output "api_invoke_url" {
   description = "URL base del API Gateway. Las rutas cuelgan de cada recurso (ej. {url}/facturas/listar)"
   value       = "https://${module.api.api_gateway_id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
+}
+
+output "sqs_sap_sync_queue_url" {
+  description = "SQS sap-sync queue URL"
+  value       = module.sqs_queues.queue_urls["sap-sync"]
+}
+
+output "sqs_document_generation_queue_url" {
+  description = "SQS document-generation queue URL"
+  value       = module.sqs_queues.queue_urls["document-generation"]
+}
+
+output "sqs_audit_queue_url" {
+  description = "SQS audit queue URL"
+  value       = module.sqs_queues.queue_urls["audit"]
 }

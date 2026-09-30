@@ -199,6 +199,16 @@ variable "voucher_redemption_app_secret_name" {
   type        = string
 }
 
+variable "audit_db_secret_name" {
+  description = "Secreto con la conexión a la base de datos de audit"
+  type        = string
+}
+
+variable "audit_app_secret_name" {
+  description = "Secreto con la configuración sensible (JwtAuth, etc.) de audit"
+  type        = string
+}
+
 # ── API Gateway ──────────────────────────────────────────────────────
 
 variable "allow_origin" {

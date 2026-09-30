@@ -40,6 +40,10 @@ locals {
     ASPNETCORE_ENVIRONMENT = var.execution_environment
     DB_SECRET_NAME         = var.invoicing_approvals_db_secret_name
     APP_SECRET_NAME        = var.invoicing_approvals_app_secret_name
+
+    # Cola a la que publica las facturas aprobadas para enviarlas a SAP.
+    # A CONFIRMAR: el nombre de la variable que espera el código.
+    Sqs__SapSyncQueueUrl = module.sqs_queues.queue_urls["sap-sync"]
   }
 }
 
@@ -85,6 +89,10 @@ locals {
     ASPNETCORE_ENVIRONMENT = var.execution_environment
     DB_SECRET_NAME         = var.voucher_management_db_secret_name
     APP_SECRET_NAME        = var.voucher_management_app_secret_name
+
+    # Cola a la que publica los vales generados para que se cree su PDF.
+    # A CONFIRMAR: el nombre de la variable que espera el código.
+    Sqs__DocumentGenerationQueueUrl = module.sqs_queues.queue_urls["document-generation"]
   }
 }
 
@@ -121,5 +129,14 @@ locals {
     ASPNETCORE_ENVIRONMENT = var.execution_environment
     DB_SECRET_NAME         = var.voucher_redemption_db_secret_name
     APP_SECRET_NAME        = var.voucher_redemption_app_secret_name
+  }
+}
+
+locals {
+  audit_environment = {
+    ENVIRONMENT            = var.execution_environment
+    ASPNETCORE_ENVIRONMENT = var.execution_environment
+    DB_SECRET_NAME         = var.audit_db_secret_name
+    APP_SECRET_NAME        = var.audit_app_secret_name
   }
 }

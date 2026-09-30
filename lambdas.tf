@@ -154,7 +154,7 @@ module "invoicing_sap_sync" {
   description      = "Sincronización de facturación con SAP: crear, consultar y estados"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.InvoicingSapSync.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler" # A CONFIRMAR: lambda de cola, formato Ensamblado::Clase::Metodo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 300
@@ -169,6 +169,17 @@ module "invoicing_sap_sync" {
   secrets_manager_secret_names = [
     var.invoicing_sap_sync_db_secret_name,
     var.invoicing_sap_sync_app_secret_name,
+  ]
+
+  # Consume la cola "sap-sync" (envío a SAP). La receta crea el event source
+  # mapping y la IAM policy de lectura. batch_size=1: una factura por invocación,
+  # una excepción reintenta solo esa (hasta maxReceiveCount=3 → DLQ).
+  sqs_event_sources = [
+    {
+      event_source_arn = module.sqs_queues.queue_arns["sap-sync"]
+      enabled          = true
+      batch_size       = 1
+    }
   ]
 
   tracing_mode = "Active"
@@ -384,7 +395,7 @@ module "document_generation" {
   description      = "Generación de PDF de vales hacia S3"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.DocumentGeneration.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler" # A CONFIRMAR: lambda de cola, formato Ensamblado::Clase::Metodo
   source_code_path = var.lambda_source_path
   memory_size      = 1024
   timeout          = 300
@@ -399,6 +410,59 @@ module "document_generation" {
   secrets_manager_secret_names = [
     var.document_generation_db_secret_name,
     var.document_generation_app_secret_name,
+  ]
+
+  # Consume la cola "document-generation" (generar PDF). Un vale por invocación.
+  sqs_event_sources = [
+    {
+      event_source_arn = module.sqs_queues.queue_arns["document-generation"]
+      enabled          = true
+      batch_size       = 1
+    }
+  ]
+
+  tracing_mode = "Active"
+  tags         = local.common_tags
+}
+
+# ═══ Auditoría ═══
+
+# ── Lambda: Audit ─
+# A CONFIRMAR: nombre del repo y function_name. Consume la cola "audit".
+
+module "audit" {
+  source           = "git::https://gitlab.com/delosi/devops/iac-templates//modules/lambda?ref=main"
+  company          = var.company
+  project          = var.project
+  environment      = var.environment
+  function_name    = "audit"
+  description      = "Auditoría: logs, trazabilidad e historial de cambios"
+  runtime          = "dotnet8"
+  architecture     = "x86_64"
+  handler          = "Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler" # A CONFIRMAR: lambda de cola, formato Ensamblado::Clase::Metodo
+  source_code_path = var.lambda_source_path
+  memory_size      = 512
+  timeout          = 60
+
+  vpc_id             = var.vpc_id
+  security_group_ids = [var.security_group_id]
+  subnet_ids         = [var.subnet_id1, var.subnet_id2]
+
+  environment_variables = local.audit_environment
+
+  enable_secrets_manager_permissions = true
+  secrets_manager_secret_names = [
+    var.audit_db_secret_name,
+    var.audit_app_secret_name,
+  ]
+
+  # Consume la cola "audit". Varios eventos por invocación: son solo escrituras de log.
+  sqs_event_sources = [
+    {
+      event_source_arn = module.sqs_queues.queue_arns["audit"]
+      enabled          = true
+      batch_size       = 10
+    }
   ]
 
   tracing_mode = "Active"

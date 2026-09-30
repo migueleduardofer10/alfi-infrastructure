@@ -21,6 +21,7 @@ Un bloque `module` por lambda en `lambdas.tf`, con la receta `modules/lambda`. C
 | `voucher-reasons` | api-voucher-reasons | Delosi-Alfie-Voucher-Reasons-Lambda-Dev |
 | `voucher-redemption` | api-voucher-redemption | Delosi-Alfie-Voucher-Redemption-Lambda-Dev |
 | `document-generation` | api-document-generation | Delosi-Alfie-Document-Generation-Lambda-Dev |
+| `audit` | a confirmar | Delosi-Alfie-Audit-Lambda-Dev |
 
 Ese nombre es el que va en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME` del `.gitlab-ci.yml` de cada repo.
 
@@ -41,13 +42,24 @@ Un solo API Gateway REST, `Delosi-alfie-{env}-api`, en `apigateway.tf`. Cada lam
 | `/voucher-reasons` | voucher-reasons |
 | `/master-data` | master-data-service |
 | `/master-data-sync` | master-data-sync |
-| `/sap-sync` | invoicing-sap-sync |
 
 Cada ruta base debe coincidir con el prefijo de rutas de la app dentro de la lambda: el gateway le pasa el path completo, por ejemplo `/facturas/listar`. Solo `/facturas` está verificado contra el código.
 
-No se exponen `invoicing-notifications`, `document-generation` ni `voucher-redemption`: las disparan SQS, EventBridge o Micros. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
+No se exponen `invoicing-sap-sync`, `document-generation`, `audit`, `invoicing-notifications` ni `voucher-redemption`: las disparan SQS, EventBridge o Micros, no un usuario. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
 
-Lo que todavía no se gestiona aquí: colas SQS, bucket S3 de PDFs, EventBridge, SES y WAF.
+## Colas SQS
+
+Tres colas con su DLQ en `sqs.tf`, con la receta `modules/sqs`. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
+
+| Cola | Publica | Consume | Estado |
+|---|---|---|---|
+| `sap-sync` | invoicing-approvals | invoicing-sap-sync | consumidor conectado |
+| `document-generation` | voucher-management | document-generation | consumidor conectado |
+| `audit` | EventBridge | audit | consumidor conectado |
+
+La receta de lambda crea el event source mapping y el permiso de **lectura** del consumidor. El permiso de **escritura** del que publica no tiene receta: hay que resolverlo con DevOps antes de que `invoicing-approvals` y `voucher-management` puedan enviar mensajes. Las URLs de las colas les llegan en `Sqs__SapSyncQueueUrl` y `Sqs__DocumentGenerationQueueUrl`.
+
+Lo que todavía no se gestiona aquí: bucket S3 de PDFs, EventBridge, SES y WAF.
 
 ## Secretos
 
