@@ -102,3 +102,8 @@ output "voucher_redemption_function_arn" {
   value = module.voucher_redemption.function_arn
 }
 
+
+output "api_invoke_url" {
+  description = "URL base del API Gateway. Las rutas cuelgan de cada recurso (ej. {url}/facturas/listar)"
+  value       = "https://${module.api.api_gateway_id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
+}

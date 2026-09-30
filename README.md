@@ -26,7 +26,28 @@ Ese nombre es el que va en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `P
 
 Para agregar una lambda: un bloque más en `lambdas.tf`, su `local` de variables de entorno en `main.tf` y sus dos variables de secreto en `variables.tf` y en los tfvars.
 
-Lo que todavía no se gestiona aquí: API Gateway, colas SQS, bucket S3 de PDFs, EventBridge, SES y WAF.
+## API Gateway
+
+Un solo API Gateway REST, `Delosi-alfie-{env}-api`, en `apigateway.tf`. Cada lambda expuesta cuelga de su propio recurso con integración proxy, `/{path}/{proxy+}` → lambda, calcado de notifications en `api-delosi-infrastructure`.
+
+| Ruta base | Lambda |
+|---|---|
+| `/facturas` | invoicing-invoices |
+| `/config-approvers` | invoicing-config-approvers |
+| `/approval-tray` | invoicing-approval-tray |
+| `/approvals` | invoicing-approvals |
+| `/vouchers` | voucher-management |
+| `/voucher-models` | voucher-models |
+| `/voucher-reasons` | voucher-reasons |
+| `/master-data` | master-data-service |
+| `/master-data-sync` | master-data-sync |
+| `/sap-sync` | invoicing-sap-sync |
+
+Cada ruta base debe coincidir con el prefijo de rutas de la app dentro de la lambda: el gateway le pasa el path completo, por ejemplo `/facturas/listar`. Solo `/facturas` está verificado contra el código.
+
+No se exponen `invoicing-notifications`, `document-generation` ni `voucher-redemption`: las disparan SQS, EventBridge o Micros. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
+
+Lo que todavía no se gestiona aquí: colas SQS, bucket S3 de PDFs, EventBridge, SES y WAF.
 
 ## Secretos
 

@@ -198,3 +198,11 @@ variable "voucher_redemption_app_secret_name" {
   description = "Secreto con la configuración sensible (JwtAuth, etc.) de voucher-redemption"
   type        = string
 }
+
+# ── API Gateway ──────────────────────────────────────────────────────
+
+variable "allow_origin" {
+  description = "Origen permitido en CORS del API Gateway. Lo consume el frontend de Alfie; ajustar al dominio real por ambiente"
+  type        = string
+  default     = "'*'"
+}
