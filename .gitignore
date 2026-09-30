@@ -1,0 +1,90 @@
+# ===========================
+# Terraform
+# ===========================
+
+# Directorios de estado local
+.terraform/
+
+# Archivos de estado (nunca commitear — contienen datos sensibles)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Planes de ejecución
+*.tfplan
+*.plan
+
+# Archivos de override (uso local)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Archivos de crash log
+crash.log
+crash.*.log
+
+# ===========================
+# Credenciales y secretos
+# ===========================
+
+# AWS
+.aws/
+aws_credentials
+
+# GCP
+*.json
+!schemas/*.json
+service_account*.json
+credentials*.json
+
+# Azure
+.azure/
+azure_credentials
+
+# Variables de entorno locales
+.env
+.env.*
+!.env.example
+
+# ===========================
+# Herramientas de desarrollo
+# ===========================
+
+# tfenv (manejo de versiones de Terraform)
+.terraform-version
+
+# Terragrunt
+.terragrunt-cache/
+terragrunt-debug.tfvars.json
+
+# terraform-docs
+.terraform-docs.yml
+
+# Checkov / tfsec / trivy (reportes generados)
+checkov-report*
+tfsec-report*
+trivy-report*
+
+# ===========================
+# IDEs y editores
+# ===========================
+
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===========================
+# Logs y temporales
+# ===========================
+
+*.log
+*.tmp
+*.bak
+
+lambda_code/
+compile_and_zip.sh

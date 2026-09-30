@@ -1,0 +1,198 @@
+stages:
+  - validate
+  - plan
+  - apply
+
+variables:
+  TF_VERSION: "1.7.0"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+image:
+  name: hashicorp/terraform:$TF_VERSION
+  entrypoint:
+    - "/usr/bin/env"
+    - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+before_script:
+  - terraform --version
+  - apk add --no-cache aws-cli
+  - aws --version
+  - git config --global url."https://oauth2:${GITLAB_CI_TEST_TOKEN}@gitlab.com/".insteadOf "https://gitlab.com/"
+
+# ==========================================
+# DEVELOPMENT ENVIRONMENT
+# ==========================================
+
+validate-dev:
+  stage: validate
+  variables:
+    AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-dev.tfvars -var-file="environments/dev.tfvars"
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: always
+    - when: never
+
+plan-dev:
+  stage: plan
+  variables:
+    AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-dev.tfvars
+    - terraform plan -var-file="environments/dev.tfvars" -out=tfplan-dev
+  dependencies:
+    - validate-dev
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: always
+    - when: never
+
+apply-dev:
+  stage: apply
+  timeout: 3h
+  variables:
+    AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-dev.tfvars
+    - terraform plan -var-file="environments/dev.tfvars" -out=tfplan-dev
+    - terraform apply -auto-approve tfplan-dev
+  dependencies:
+    - plan-dev
+  when: manual
+  environment:
+    name: development
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: always
+    - when: never
+
+# ==========================================
+# STAGING ENVIRONMENT
+# ==========================================
+
+validate-stg:
+  stage: validate
+  variables:
+    AWS_ACCESS_KEY_ID: $STG_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $STG_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-stg.tfvars -var-file="environments/stg.tfvars"
+    - terraform validate
+  rules:
+    #- if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "release"
+    #  when: always
+    #- if: $CI_COMMIT_BRANCH == "release"
+    #  when: always
+    - when: never
+
+plan-stg:
+  stage: plan
+  variables:
+    AWS_ACCESS_KEY_ID: $STG_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $STG_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-stg.tfvars
+    - terraform plan -var-file="environments/stg.tfvars" -out=tfplan-stg
+  dependencies:
+    - validate-stg
+  rules:
+    #- if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "release"
+    #  when: always
+    #- if: $CI_COMMIT_BRANCH == "release"
+    #  when: always
+    - when: never
+
+apply-stg:
+  stage: apply
+  timeout: 3h
+  variables:
+    AWS_ACCESS_KEY_ID: $STG_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $STG_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-stg.tfvars
+    - terraform plan -var-file="environments/stg.tfvars" -out=tfplan-stg
+    - terraform apply -auto-approve tfplan-stg
+  dependencies:
+    - plan-stg
+  when: manual
+  environment:
+    name: staging
+  rules:
+    #- if: $CI_COMMIT_BRANCH == "release"
+    #  when: always
+    - when: never
+
+# ==========================================
+# PRODUCTION ENVIRONMENT
+# ==========================================
+
+validate-prd:
+  stage: validate
+  variables:
+    AWS_ACCESS_KEY_ID: $PRD_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $PRD_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-prd.tfvars -var-file="environments/prd.tfvars"
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+
+plan-prd:
+  stage: plan
+  variables:
+    AWS_ACCESS_KEY_ID: $PRD_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $PRD_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-prd.tfvars
+    - terraform plan -var-file="environments/prd.tfvars" -out=tfplan-prd
+  dependencies:
+    - validate-prd
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+
+apply-prd:
+  stage: apply
+  timeout: 6h
+  variables:
+    AWS_ACCESS_KEY_ID: $PRD_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $PRD_AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION: $AWS_REGION
+  script:
+    - terraform init -backend-config=backend-configs/backend-prd.tfvars
+    - terraform plan -var-file="environments/prd.tfvars" -out=tfplan-prd
+    - terraform apply -auto-approve tfplan-prd
+  dependencies:
+    - plan-prd
+  when: manual
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
