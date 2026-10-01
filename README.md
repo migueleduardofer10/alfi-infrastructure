@@ -49,7 +49,7 @@ Hoy el mapeo está así. Solo la primera fila está verificada contra el código
 | `api-master-data-service` | Delosi-Alfie-Master-Data-Service-Lambda-Dev | `/master-data` | `Delosi.MasterDataService.Api` |
 | `api-master-data-sync` | Delosi-Alfie-Master-Data-Sync-Lambda-Dev | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
 | `api-invoicing-notifications` | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingNotifications::Delosi.InvoicingNotifications.Functions.NotificationFunction::FunctionHandler` |
-| `api-voucher-redemption` | Delosi-Alfie-Voucher-Redemption-Lambda-Dev | `/voucher-redemption` (falta crearla, la llama Micros) | `Delosi.VoucherRedemption.Api` |
+| `api-voucher-redemption` | Delosi-Alfie-Voucher-Redemption-Lambda-Dev | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 | `api-invoicing-sap-sync` | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler` |
 | `api-document-generation` | Delosi-Alfie-Document-Generation-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler` |
 | (falta repo) | Delosi-Alfie-Audit-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler` |
@@ -191,7 +191,11 @@ Son dos por lambda y por ambiente. La lista completa de nombres está en `enviro
 
 La receta de lambda da permiso para **leer** una cola, pero no para **escribir**. `invoicing-approvals` y `voucher-management` necesitan enviar mensajes (punto 4) y, sin ese permiso, AWS les responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
 
-#### 11. Verificar el remitente en SES
+#### 11. Cómo se autentica Micros
+
+Micros llama a `/voucher-redemption` por HTTPS pero no tiene el JWT de Active Directory. Hoy la ruta va abierta en el gateway. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
+
+#### 12. Verificar el remitente en SES
 
 `invoicing-notifications` ya tiene permiso para enviar correos por SES, pero SES solo envía desde un **dominio o correo verificado**. Hay que verificarlo en la cuenta.
 
@@ -238,10 +242,13 @@ Un solo API Gateway REST, `Delosi-alfie-{env}-api`, en `apigateway.tf`. Cada lam
 | `/voucher-reasons` | voucher-reasons |
 | `/master-data` | master-data-service |
 | `/master-data-sync` | master-data-sync |
+| `/voucher-redemption` | voucher-redemption (la llama Micros) |
 
 Cada ruta base debe coincidir con el prefijo de rutas de la app dentro de la lambda: el gateway le pasa el path completo, por ejemplo `/facturas/listar`. Solo `/facturas` está verificado contra el código.
 
-No se exponen `invoicing-sap-sync`, `document-generation`, `audit`, `invoicing-notifications` ni `voucher-redemption`: las disparan SQS, EventBridge o Micros, no un usuario. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
+No se exponen `invoicing-sap-sync`, `document-generation`, `audit` ni `invoicing-notifications`: las dispara SQS, no una llamada HTTP. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
+
+`/voucher-redemption` la llama Micros, que no tiene JWT. Por ahora va abierta como las demás; cómo se autentica está por definir (punto 11).
 
 ## Colas SQS
 

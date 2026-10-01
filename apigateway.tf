@@ -7,10 +7,12 @@
 #
 # Calcado de apigateway.tf de api-delosi-infrastructure (notifications).
 #
-# Lambdas que NO se exponen: invoicing-notifications, document-generation y
-# voucher-redemption. Las disparan SQS, EventBridge o Micros, no un usuario.
+# Lambdas que NO se exponen: invoicing-notifications, invoicing-sap-sync,
+# document-generation y audit. Las dispara SQS, no una llamada HTTP.
 #
-# El Authorizer es externo a este repo. Los métodos van con authorization = NONE.
+# El Authorizer es externo a este repo. Los métodos van con authorization = NONE
+# y cada lambda valida el JWT. /voucher-redemption la llama Micros, que no tiene
+# JWT; cómo se autentica (API key u otro) está por definir, hoy va abierta.
 
 module "api" {
   source                  = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-base?ref=main"
@@ -699,6 +701,82 @@ resource "aws_lambda_permission" "master_data_sync_api_gateway" {
   source_arn    = "${module.api.execution_arn}/*/*"
 }
 
+# ═══ /voucher-redemption → lambda voucher-redemption ═══
+# La llama Micros por HTTPS (consulta y redención de vales). Micros no tiene JWT.
+# A CONFIRMAR: cómo se autentica (API key u otro) y el prefijo de rutas de la app.
+
+module "voucher_redemption_resource" {
+  source             = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-resource?ref=main"
+  company            = var.company
+  project            = var.project
+  environment        = var.environment
+  api_gateway_id     = module.api.api_gateway_id
+  parent_resource_id = module.api.root_resource_id
+  path_part          = "voucher-redemption"
+}
+
+module "voucher_redemption_resource_proxy" {
+  source             = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-resource?ref=main"
+  company            = var.company
+  project            = var.project
+  environment        = var.environment
+  api_gateway_id     = module.api.api_gateway_id
+  parent_resource_id = module.voucher_redemption_resource.resource_id
+  path_part          = "{proxy+}"
+}
+
+module "voucher_redemption_cors_proxy" {
+  source          = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-method-cors?ref=main"
+  api_gateway_id  = module.api.api_gateway_id
+  resource_id     = module.voucher_redemption_resource_proxy.resource_id
+  allowed_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+  allowed_headers = [
+    "Content-Type",
+    "Authorization",
+    "X-Amz-Date",
+    "X-Api-Key",
+    "X-Amz-Security-Token",
+    "X-Correlation-Id",
+  ]
+  allow_origin = var.allow_origin
+}
+
+module "voucher_redemption_method_proxy" {
+  source         = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-method?ref=main"
+  api_gateway_id = module.api.api_gateway_id
+  resource_id    = module.voucher_redemption_resource_proxy.resource_id
+  company        = var.company
+  project        = var.project
+  environment    = var.environment
+  http_method    = "ANY"
+  authorization  = "NONE"
+}
+
+module "voucher_redemption_integration_proxy" {
+  source                  = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-lambda-integration?ref=main"
+  company                 = var.company
+  project                 = var.project
+  environment             = var.environment
+  api_gateway_id          = module.api.api_gateway_id
+  resource_id             = module.voucher_redemption_resource_proxy.resource_id
+  resource_name           = "voucher-redemption-integration-proxy"
+  http_method             = module.voucher_redemption_method_proxy.http_method
+  lambda_function_name    = module.voucher_redemption.function_name
+  lambda_invoke_arn       = module.voucher_redemption.function_invoke_arn
+  integration_type        = "AWS_PROXY"
+  integration_http_method = "POST"
+  create_permission       = true
+  integration_timeout     = 29000
+}
+
+resource "aws_lambda_permission" "voucher_redemption_api_gateway" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.voucher_redemption.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api.execution_arn}/*/*"
+}
+
 # ── Deployment ────────────────────────────────────────────────────────
 
 module "api_deployment" {
@@ -720,6 +798,7 @@ module "api_deployment" {
       module.voucher_reasons_resource.resource_id, module.voucher_reasons_resource_proxy.resource_id,
       module.master_data_service_resource.resource_id, module.master_data_service_resource_proxy.resource_id,
       module.master_data_sync_resource.resource_id, module.master_data_sync_resource_proxy.resource_id,
+      module.voucher_redemption_resource.resource_id, module.voucher_redemption_resource_proxy.resource_id,
     ]
     methods = [
       "${module.invoicing_invoices_resource_proxy.resource_id}:ANY",
@@ -731,6 +810,7 @@ module "api_deployment" {
       "${module.voucher_reasons_resource_proxy.resource_id}:ANY",
       "${module.master_data_service_resource_proxy.resource_id}:ANY",
       "${module.master_data_sync_resource_proxy.resource_id}:ANY",
+      "${module.voucher_redemption_resource_proxy.resource_id}:ANY",
     ]
     integrations = [
       module.invoicing_invoices_integration_proxy.integration_id,
@@ -742,6 +822,7 @@ module "api_deployment" {
       module.voucher_reasons_integration_proxy.integration_id,
       module.master_data_service_integration_proxy.integration_id,
       module.master_data_sync_integration_proxy.integration_id,
+      module.voucher_redemption_integration_proxy.integration_id,
     ]
   }))
 
@@ -773,5 +854,8 @@ module "api_deployment" {
     module.master_data_sync_method_proxy,
     module.master_data_sync_integration_proxy,
     module.master_data_sync_cors_proxy,
+    module.voucher_redemption_method_proxy,
+    module.voucher_redemption_integration_proxy,
+    module.voucher_redemption_cors_proxy,
   ]
 }
