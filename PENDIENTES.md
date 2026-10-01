@@ -8,7 +8,23 @@ Faltan datos que este repo no puede inventar. Mientras no estén, los valores so
 
 **1. Falta la lambda de auditoría.** El diagrama tiene API-AUDITORIA pero no hay repo. En Terraform está con el nombre provisional `audit`, conectada a la cola `audit`. Falta el nombre del repo y el handler de cola (punto 5). Se ajusta en el bloque `module "audit"` de `lambdas.tf`.
 
-**2. Confirmar la ruta base de cada API.** Cada equipo revisa que la ruta base de su fila en la tabla de Lambdas de API del README sea el prefijo real de su app (el `MapGroup`). Si es distinto, se cambia el `path_part` en `apigateway.tf`.
+**2. Dar conformidad a la ruta base y el handler de cada API.** Cada equipo revisa su fila y marca si está bien o qué hay que corregir. Solo API-FACTURAS está verificada contra el código; el resto son supuestos.
+
+- **Ruta base**: el prefijo con el que empiezan los endpoints de la app, el `MapGroup`. Si no coincide, el gateway responde 404. Se corrige en el `path_part` de `apigateway.tf`.
+- **Handler**: el `AssemblyName` del `.csproj` que se despliega, el mismo valor que `function-handler` en `aws-lambda-tools-defaults.json`. Si no coincide, la lambda no arranca. Se corrige en `lambdas.tf`.
+
+| Lambda (diagrama) | Repo | Ruta base | Handler | Conformidad |
+|:--|:--|:--|:--|:--|
+| API-FACTURAS | api-invoicing-invoices | `/facturas` | `Delosi.InvoicingInvoices.Api` | ✔ verificada |
+| API-CONFIG-APROBADORES | api-invoicing-config-approvers | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` | pendiente |
+| API-BANDEJA-APROBACIONES | api-invoicing-approval-tray | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` | pendiente |
+| API-APROBACIONES | api-invoicing-approvals | `/approvals` | `Delosi.InvoicingApprovals.Api` | pendiente |
+| API-GESTOR | api-voucher-management | `/vouchers` | `Delosi.VoucherManagement.Api` | pendiente |
+| API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` | pendiente |
+| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` | pendiente |
+| API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` | pendiente |
+| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` | pendiente |
+| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` | `Delosi.VoucherRedemption.Api` | pendiente |
 
 **3. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
 
