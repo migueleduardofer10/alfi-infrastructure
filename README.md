@@ -1,43 +1,37 @@
 # alfie-infrastructure
 
-Infraestructura (Terraform) de los componentes de Alfie. Solo usa las recetas de [iac-templates](https://gitlab.com/delosi/devops/iac-templates).
+Infraestructura de Alfie en AWS, escrita en Terraform. Crea las 14 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
 
-## Pendientes para el primer despliegue
+Lo que **no** crea, porque no hay receta: bucket S3, bases de datos, EventBridge, WAF, secretos y la configuración de SES. Eso lo crea DevOps aparte. Lo que falta para el primer despliegue está en [PENDIENTES.md](PENDIENTES.md).
 
-Este repo ya tiene en Terraform todo lo del diagrama de arquitectura que se puede crear con las recetas de DevOps (`iac-templates`): 14 lambdas, el API Gateway, 3 colas SQS y los permisos de Secrets Manager, S3 y SES.
+## Cómo funciona
 
-Para desplegarlo faltan datos que este repo no puede inventar. Algunos los tiene el equipo de Alfie y otros DevOps. Mientras no estén, los valores del repo son **supuestos** y van marcados con `A CONFIRMAR` en el código.
+Cada repo de aplicación (`api-invoicing-invoices`, `api-voucher-models`, etc.) se despliega en una lambda. El trabajo se reparte así:
 
----
+| Quién | Qué hace |
+|:--|:--|
+| **Este repo (Terraform)** | Crea la lambda con su configuración: nombre, handler, memoria, timeout, VPC, rol IAM, permisos y variables de entorno. La crea con un código vacío. |
+| **El pipeline de cada repo app** | Compila el proyecto y sube el `.zip` a la lambda que ya existe, con `aws lambda update-function-code`. |
 
-### Equipo de Alfie
+Por eso hay dos cosas que tienen que coincidir entre este repo y cada repo app:
 
-#### 1. Falta la lambda de auditoría
+1. **El nombre de la lambda.** Terraform la crea como `Delosi-Alfie-{Function-Name}-Lambda-{Env}`, donde `{Function-Name}` es el nombre del repo sin el prefijo `api-`, con mayúscula inicial en cada palabra. Ese mismo nombre va en el `.gitlab-ci.yml` del repo app, en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`. Si no coincide, el pipeline del app compila pero no encuentra dónde desplegar.
 
-El diagrama tiene una lambda **API-AUDITORÍA** (logs, trazabilidad e historial de cambios), pero no hay repo para ella.
+   ```
+   repo api-voucher-models  →  Delosi-Alfie-Voucher-Models-Lambda-Dev
+   ```
 
-En Terraform ya está creada con un nombre provisional, `audit`, y conectada a la cola `audit`. Necesitamos:
+2. **El handler.** Le dice a AWS qué código ejecutar. Lo fija Terraform y el pipeline del app no lo toca. Si está mal, el despliegue sale en verde pero la lambda falla en cada llamada.
 
-- **El nombre del repo**, por ejemplo `api-audit`.
-- **El handler**, que tiene que ser de lambda de cola (ver punto 5).
+Las credenciales nunca pasan por este repo. Cada lambda lee sus secretos de Secrets Manager al arrancar; Terraform solo le pasa el nombre del secreto y le da permiso de lectura.
 
-Con eso se ajusta el bloque `module "audit"` en `lambdas.tf`.
+## Qué crea este repo
 
-#### 2. Mapeo repo → lambda → ruta base
+### Lambdas
 
-Cada repo se despliega en una lambda con un nombre fijo, y las que reciben llamadas HTTP cuelgan del API Gateway bajo una **ruta base**. Por ejemplo:
+Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distinto.
 
-```
-api-voucher-models  →  Delosi-Alfie-Voucher-Models-Lambda-Dev  →  /voucher-models
-```
-
-Así, los endpoints de ese repo quedan como `{url-del-gateway}/voucher-models/crear`, `{url-del-gateway}/voucher-models/listar`, etc.
-
-**Por qué importa:** el gateway le pasa a la lambda la ruta completa. Si la app define sus endpoints como `/modelos/crear` pero el gateway usa `/voucher-models`, toda llamada responde **404**.
-
-Hoy el mapeo está así. Solo la fila de API-FACTURAS está verificada contra el código. Necesitamos que cada equipo confirme o corrija su fila.
-
-**Lambdas que entran por el API Gateway.** El handler es solo el ensamblado:
+**Lambdas de API.** Las llama el frontend (o Micros) por HTTP a través del API Gateway. El handler es solo el nombre del ensamblado, el `AssemblyName` del `.csproj` que se despliega:
 
 | Lambda (diagrama) | Repo | Ruta base | Handler |
 |:--|:--|:--|:--|
@@ -52,7 +46,7 @@ Hoy el mapeo está así. Solo la fila de API-FACTURAS está verificada contra el
 | API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
 | API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 
-**Lambdas que dispara SQS.** No tienen ruta. El handler es `Ensamblado::Namespace.Clase::Metodo` y los de la tabla son supuestos (ver punto 5):
+**Lambdas de cola.** No tienen ruta: las despierta SQS cuando llega un mensaje. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe los mensajes:
 
 | Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
@@ -61,235 +55,70 @@ Hoy el mapeo está así. Solo la fila de API-FACTURAS está verificada contra el
 | Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
 | API-AUDITORIA | (falta repo) | `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
 
-- **Ruta base**: el prefijo con el que empiezan los endpoints de la app. En facturas, por ejemplo, es el `MapGroup("/facturas")`.
-- **Handler**: en las APIs es el `AssemblyName` del `.csproj` que se despliega. En las de cola se arma uniendo las tres columnas con `::`. Si está mal, la lambda no arranca.
+Solo la fila de API-FACTURAS está verificada contra el código. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 2 y 5).
 
-El nombre de cada lambda en AWS está en la tabla de la sección [Lambdas](#lambdas). Ese nombre es el que va en el `.gitlab-ci.yml` de cada repo, en `DEV_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
+Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secretos. Las de API tienen timeout de 28 s porque el gateway corta a 29 s.
 
-#### 3. Nombre del bucket de documentos
+**Nombre en AWS.** Es el que va en el `.gitlab-ci.yml` de cada repo app. En stg y prd es el mismo terminado en `-Stg` y `-Prd`:
 
-La lambda `document-generation` genera los PDF de los vales y los guarda en un bucket de S3. Ya tiene el permiso de escritura, pero sobre un nombre provisional:
+| Repo | Lambda en dev |
+|:--|:--|
+| api-invoicing-invoices | Delosi-Alfie-Invoicing-Invoices-Lambda-Dev |
+| api-invoicing-config-approvers | Delosi-Alfie-Invoicing-Config-Approvers-Lambda-Dev |
+| api-invoicing-approval-tray | Delosi-Alfie-Invoicing-Approval-Tray-Lambda-Dev |
+| api-invoicing-approvals | Delosi-Alfie-Invoicing-Approvals-Lambda-Dev |
+| api-invoicing-sap-sync | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev |
+| api-invoicing-notifications | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev |
+| api-master-data-sync | Delosi-Alfie-Master-Data-Sync-Lambda-Dev |
+| api-master-data-service | Delosi-Alfie-Master-Data-Service-Lambda-Dev |
+| api-voucher-management | Delosi-Alfie-Voucher-Management-Lambda-Dev |
+| api-voucher-models | Delosi-Alfie-Voucher-Models-Lambda-Dev |
+| api-voucher-reasons | Delosi-Alfie-Voucher-Reasons-Lambda-Dev |
+| api-voucher-redemption | Delosi-Alfie-Voucher-Redemption-Lambda-Dev |
+| api-document-generation | Delosi-Alfie-Document-Generation-Lambda-Dev |
+| (falta repo) | Delosi-Alfie-Audit-Lambda-Dev |
 
-```
-delosi-alfie-documents-dev
-delosi-alfie-documents-prd
-```
+### API Gateway
 
-Necesitamos el **nombre real** del bucket por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`. La lambda lo recibe en la variable de entorno `S3_BUCKET_NAME`.
+Un solo API Gateway REST en `apigateway.tf`. Cada lambda de API cuelga de su ruta base con integración proxy: `/{ruta-base}/{proxy+}` → lambda. El gateway no conoce los endpoints reales, solo manda todo lo que empiece con la ruta base a la lambda, y la app resuelve el resto.
 
-#### 4. Variable con la URL de la cola
+**La ruta base tiene que coincidir con el prefijo de la app.** En facturas, por ejemplo, es el `MapGroup("/facturas")` de `InvoiceEndpoints.cs`. Si la app define `/modelos/crear` pero el gateway usa `/voucher-models`, toda llamada responde 404.
 
-Dos lambdas **envían** mensajes a una cola. Para eso necesitan la URL de la cola, que Terraform les pasa como variable de entorno:
+La URL base sale en `terraform output api_invoke_url`. Un endpoint queda como `{url-base}/facturas/listar`.
 
-| Lambda que envía | Variable de entorno | Cola |
-|---|---|---|
-| `invoicing-approvals` | `Sqs__SapSyncQueueUrl` | `sap-sync`, envío de facturas a SAP |
-| `voucher-management` | `Sqs__DocumentGenerationQueueUrl` | `document-generation`, generar PDF |
+Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 12).
 
-En el código, .NET la lee como `config["Sqs:SapSyncQueueUrl"]` (el `__` se convierte en `:` solo).
+### Colas SQS
 
-**El nombre de la variable lo propusimos nosotros.** Si el código ya lee la URL con otra clave, por ejemplo `config["Queues:Sap"]`, nos dicen cuál y cambiamos el nombre en Terraform a `Queues__Sap`. No hace falta tocar el código.
+Tres colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
 
-#### 5. Cómo están hechas las lambdas que reciben mensajes de SQS
+| Cola | Quién publica | Quién consume | Para qué |
+|:--|:--|:--|:--|
+| `sap-sync` | invoicing-approvals | invoicing-sap-sync | Facturas aprobadas que hay que mandar a SAP |
+| `document-generation` | voucher-management | document-generation | Vales a los que hay que generar el PDF |
+| `audit` | EventBridge (sin receta, a definir) | audit | Eventos a auditar |
 
-Tres lambdas no reciben llamadas HTTP: las despierta una cola cuando le llega un mensaje.
+La conexión cola → consumidor la hace Terraform con `sqs_event_sources` en el bloque de la lambda: AWS lee la cola y le entrega los mensajes a la lambda, que no necesita saber nada de la cola.
 
-| Lambda | Cola |
-|---|---|
-| `invoicing-sap-sync` | `sap-sync` |
-| `document-generation` | `document-generation` |
-| `audit` | `audit` |
+El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL le llega como variable de entorno (PENDIENTES.md, punto 4); el permiso todavía no tiene receta (punto 11).
 
-Una lambda de cola tiene un código de entrada distinto al de una API. No tiene rutas: tiene un método que recibe la lista de mensajes, por ejemplo:
+### Permisos extra
 
-```csharp
-public class SapSyncFunction
-{
-    public async Task FunctionHandler(SQSEvent evt, ILambdaContext ctx)
-    {
-        foreach (var msg in evt.Records)
-        {
-            // procesar msg.Body
-        }
-    }
-}
-```
+| Lambda | Permiso | Para qué |
+|:--|:--|:--|
+| document-generation | Escritura en el bucket `documents_bucket_name` | Guardar los PDF de los vales. La lambda recibe el nombre en `S3_BUCKET_NAME`. |
+| invoicing-notifications | Enviar correos por SES | Correos de facturas y vales |
 
-Y su handler en Terraform se escribe `Ensamblado::Namespace.Clase::Método`. Hoy está provisional así:
+### Secretos
 
-```
-Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler
-```
-
-Necesitamos saber, de cada una, **el ensamblado, la clase y el método** que recibe los mensajes. Si alguna hoy está hecha como API, hay que agregarle ese método: una lambda tiene un solo punto de entrada, y una API no entiende el evento de la cola.
-
-#### 6. ¿API-MAESTROS API corre con un scheduler o solo por el API Gateway?
-
-`master-data-sync` va a buscar productos, compañías, marcas y campañas al API Delosi. Hoy está expuesta en el gateway, en `/master-data-sync`: corre cuando alguien la llama.
-
-Si además tiene que correr **sola por horario**, por ejemplo todos los días a las 6:00, se agrega un scheduler. Pero ojo: como hoy es una API, no entiende el evento del scheduler. Haría falta una segunda lambda con el mismo código y un handler de scheduler, como hace `menu-sync` en `api-delosi-integration-infrastructure`.
-
-Necesitamos saber si aplica y, si sí, a qué hora.
-
----
-
-### DevOps
-
-#### 7. Red de las lambdas
-
-Las lambdas corren dentro de una VPC. De esa red depende a qué pueden llegar. Necesitan alcance a:
-
-- El **PostgreSQL** de Alfie (BD Facturación, BD Vales, BD Maestros).
-- **Secrets Manager**, para leer sus secretos al arrancar.
-- **Internet** por NAT, para el IDP de JWT, SAP PI, el API Delosi y Micros.
-
-Hoy los IDs están **copiados de `api-delosi-integration-infrastructure`**, sin verificar. Necesitamos, por ambiente:
-
-- `vpc_id`
-- `subnet_id1` y `subnet_id2` (privadas, con NAT)
-- `security_group_id` (con salida al Postgres por el 5432)
-
-Se cambian en `environments/{env}.tfvars`.
-
-#### 8. Buckets del state de Terraform
-
-Terraform guarda el registro de lo que creó en un bucket de S3. **Ese bucket tiene que existir antes del primer despliegue**: si no, el pipeline falla en `terraform init`.
-
-Nombre provisional, uno por ambiente:
+Dos por lambda y por ambiente, creados a mano en Secrets Manager. Los tfvars solo guardan sus nombres, con esta convención:
 
 ```
-terraform-bucket-delosi-alfie-dev
-terraform-bucket-delosi-alfie-prd
+delosi-alfie-{env}/{function_name}-db    → conexión a la base
+delosi-alfie-{env}/{function_name}-app   → JWT y demás configuración sensible
 ```
 
-Se cambian en `backend-configs/backend-{env}.tfvars`.
-
-#### 9. Crear los secretos
-
-Ninguna credencial está en el repo. Cada lambda lee dos secretos de Secrets Manager al arrancar, y Terraform solo le pasa el nombre y le da permiso de lectura. Los secretos hay que crearlos a mano, con esta convención:
-
-```
-delosi-alfie-{env}/{lambda}-db    → conexión a la base
-delosi-alfie-{env}/{lambda}-app   → JWT y demás configuración sensible
-```
-
-Por ejemplo, para facturas en dev:
-
-`delosi-alfie-dev/invoicing-invoices-db`
-```json
-{
-  "ConnectionStrings__Postgres": "Host=...;Port=5432;Database=invoicing_db;Username=...;Password=..."
-}
-```
-
-`delosi-alfie-dev/invoicing-invoices-app`
-```json
-{
-  "JwtAuth__Enabled": true,
-  "JwtAuth__MetadataAddress": "https://IDP/.well-known/openid-configuration",
-  "JwtAuth__ValidIssuer": "https://IDP",
-  "JwtAuth__ValidAudience": "api-invoicing-invoices"
-}
-```
-
-Son dos por lambda y por ambiente. La lista completa de nombres está en `environments/{env}.tfvars`. Las claves de cada secreto dependen de lo que lea el código de cada lambda.
-
-#### 10. Permiso para enviar mensajes a SQS
-
-La receta de lambda da permiso para **leer** una cola, pero no para **escribir**. `invoicing-approvals` y `voucher-management` necesitan enviar mensajes (punto 4) y, sin ese permiso, AWS les responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
-
-#### 11. Cómo se autentica Micros
-
-Micros llama a `/voucher-redemption` por HTTPS pero no tiene el JWT de Active Directory. Hoy la ruta va abierta en el gateway. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
-
-#### 12. Verificar el remitente en SES
-
-`invoicing-notifications` ya tiene permiso para enviar correos por SES, pero SES solo envía desde un **dominio o correo verificado**. Hay que verificarlo en la cuenta.
-
----
-
-
-## Lambdas
-
-Un bloque `module` por lambda en `lambdas.tf`, con la receta `modules/lambda`. Cada una tiene su rol IAM y permiso de lectura sobre sus dos secretos. El nombre en AWS es `Delosi-Alfie-{Function-Name}-Lambda-{Env}`.
-
-| `function_name` | Repo | Lambda en dev |
-|---|---|---|
-| `invoicing-invoices` | api-invoicing-invoices | Delosi-Alfie-Invoicing-Invoices-Lambda-Dev |
-| `invoicing-config-approvers` | api-invoicing-config-approvers | Delosi-Alfie-Invoicing-Config-Approvers-Lambda-Dev |
-| `invoicing-approval-tray` | api-invoicing-approval-tray | Delosi-Alfie-Invoicing-Approval-Tray-Lambda-Dev |
-| `invoicing-approvals` | api-invoicing-approvals | Delosi-Alfie-Invoicing-Approvals-Lambda-Dev |
-| `invoicing-sap-sync` | api-invoicing-sap-sync | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev |
-| `invoicing-notifications` | api-invoicing-notifications | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev |
-| `master-data-sync` | api-master-data-sync | Delosi-Alfie-Master-Data-Sync-Lambda-Dev |
-| `master-data-service` | api-master-data-service | Delosi-Alfie-Master-Data-Service-Lambda-Dev |
-| `voucher-management` | api-voucher-management | Delosi-Alfie-Voucher-Management-Lambda-Dev |
-| `voucher-models` | api-voucher-models | Delosi-Alfie-Voucher-Models-Lambda-Dev |
-| `voucher-reasons` | api-voucher-reasons | Delosi-Alfie-Voucher-Reasons-Lambda-Dev |
-| `voucher-redemption` | api-voucher-redemption | Delosi-Alfie-Voucher-Redemption-Lambda-Dev |
-| `document-generation` | api-document-generation | Delosi-Alfie-Document-Generation-Lambda-Dev |
-| `audit` | a confirmar | Delosi-Alfie-Audit-Lambda-Dev |
-
-Ese nombre es el que va en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME` del `.gitlab-ci.yml` de cada repo.
-
-Para agregar una lambda: un bloque más en `lambdas.tf`, su `local` de variables de entorno en `main.tf` y sus dos variables de secreto en `variables.tf` y en los tfvars.
-
-## API Gateway
-
-Un solo API Gateway REST, `Delosi-alfie-{env}-api`, en `apigateway.tf`. Cada lambda expuesta cuelga de su propio recurso con integración proxy, `/{path}/{proxy+}` → lambda, calcado de notifications en `api-delosi-infrastructure`.
-
-| Ruta base | Lambda |
-|---|---|
-| `/facturas` | invoicing-invoices |
-| `/config-approvers` | invoicing-config-approvers |
-| `/approval-tray` | invoicing-approval-tray |
-| `/approvals` | invoicing-approvals |
-| `/vouchers` | voucher-management |
-| `/voucher-models` | voucher-models |
-| `/voucher-reasons` | voucher-reasons |
-| `/master-data` | master-data-service |
-| `/master-data-sync` | master-data-sync |
-| `/voucher-redemption` | voucher-redemption (la llama Micros) |
-
-Cada ruta base debe coincidir con el prefijo de rutas de la app dentro de la lambda: el gateway le pasa el path completo, por ejemplo `/facturas/listar`. Solo `/facturas` está verificado contra el código.
-
-No se exponen `invoicing-sap-sync`, `document-generation`, `audit` ni `invoicing-notifications`: las dispara SQS, no una llamada HTTP. El Authorizer es externo; los métodos van con `authorization = NONE` y cada lambda valida su JWT. La URL base sale en `terraform output api_invoke_url`.
-
-`/voucher-redemption` la llama Micros, que no tiene JWT. Por ahora va abierta como las demás; cómo se autentica está por definir (punto 11).
-
-## Colas SQS
-
-Tres colas con su DLQ en `sqs.tf`, con la receta `modules/sqs`. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
-
-| Cola | Publica | Consume | Estado |
-|---|---|---|---|
-| `sap-sync` | invoicing-approvals | invoicing-sap-sync | consumidor conectado |
-| `document-generation` | voucher-management | document-generation | consumidor conectado |
-| `audit` | EventBridge | audit | consumidor conectado |
-
-La receta de lambda crea el event source mapping y el permiso de **lectura** del consumidor. El permiso de **escritura** del que publica no tiene receta: hay que resolverlo con DevOps antes de que `invoicing-approvals` y `voucher-management` puedan enviar mensajes. Las URLs de las colas les llegan en `Sqs__SapSyncQueueUrl` y `Sqs__DocumentGenerationQueueUrl`.
-
-## Permisos
-
-| Lambda | Qué tiene | Dónde |
-|---|---|---|
-| `document-generation` | Permiso de escritura en el bucket `documents_bucket_name` | `enable_s3_permissions` |
-| `invoicing-notifications` | Permiso para enviar correos por SES | `enable_ses_permissions` |
-
-El bucket de PDFs no lo crea este repo: `delosi-alfie-documents-{env}` lo crea DevOps a mano.
-
-Lo que no se gestiona aquí (sin receta): bucket S3, EventBridge, WAF y la configuración de SES (dominio y remitentes verificados).
-
-## Secretos
-
-Ningún secreto pasa por Terraform ni por GitLab. Se crean a mano en Secrets Manager, dos por lambda y por ambiente. Los tfvars solo guardan sus nombres:
-
-- `delosi-alfie-{env}/{function_name}-db` → conexión a la base
-- `delosi-alfie-{env}/{function_name}-app` → JWT y demás configuración sensible
-
-La receta le da a cada lambda permiso de lectura sobre sus dos secretos y le pasa los nombres en `DB_SECRET_NAME` y `APP_SECRET_NAME`. El código los lee al arrancar.
-
-Ejemplo para `invoicing-invoices` en dev:
+La lambda recibe los nombres en `DB_SECRET_NAME` y `APP_SECRET_NAME` y los lee al arrancar. Ejemplo para facturas en dev:
 
 `delosi-alfie-dev/invoicing-invoices-db`
 ```json
@@ -308,11 +137,32 @@ Ejemplo para `invoicing-invoices` en dev:
 }
 ```
 
-El pipeline necesita estas variables CI/CD: `{DEV,STG,PRD}_AWS_ACCESS_KEY_ID`, `{DEV,STG,PRD}_AWS_SECRET_ACCESS_KEY`, `AWS_REGION` y `GITLAB_CI_TEST_TOKEN`.
+Las claves de cada secreto dependen de lo que lea el código de cada lambda. El `__` se convierte en `:` en .NET: `JwtAuth__Enabled` se lee como `config["JwtAuth:Enabled"]`.
 
-## Despliegue local
+## Cómo desplegar
+
+El pipeline de GitLab corre `validate` y `plan` solo; el `apply` es **manual**, se dispara desde el pipeline cuando alguien revisó el plan.
+
+| Rama | Ambiente | Estado |
+|:--|:--|:--|
+| `develop` | dev | activo |
+| `release` | stg | desactivado en `.gitlab-ci.yml` |
+| `main` | prd | activo |
+
+Variables CI/CD que necesita el proyecto en GitLab: `{DEV,STG,PRD}_AWS_ACCESS_KEY_ID`, `{DEV,STG,PRD}_AWS_SECRET_ACCESS_KEY`, `AWS_REGION` y `GITLAB_CI_TEST_TOKEN` (acceso a iac-templates).
+
+Para probar en local:
 
 ```bash
 terraform init -backend-config=backend-configs/backend-dev.tfvars
 terraform plan -var-file=environments/dev.tfvars
 ```
+
+## Cómo agregar una lambda
+
+1. Un bloque `module` más en `lambdas.tf`, copiando uno del mismo tipo (API o cola).
+2. Su `local` de variables de entorno en `main.tf`.
+3. Sus dos variables de secreto en `variables.tf` y el nombre del secreto en los tres tfvars.
+4. Si es de API, su bloque de ruta en `apigateway.tf` y sus entradas en el `trigger` y el `depends_on` del deployment.
+5. Si es de cola, la cola en `sqs.tf` y el `sqs_event_sources` en el bloque de la lambda.
+6. En el repo app, el nombre de la lambda en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
