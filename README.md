@@ -35,27 +35,34 @@ Así, los endpoints de ese repo quedan como `{url-del-gateway}/voucher-models/cr
 
 **Por qué importa:** el gateway le pasa a la lambda la ruta completa. Si la app define sus endpoints como `/modelos/crear` pero el gateway usa `/voucher-models`, toda llamada responde **404**.
 
-Hoy el mapeo está así. Solo la primera fila está verificada contra el código. Necesitamos que cada equipo confirme o corrija su fila:
+Hoy el mapeo está así. Solo la fila de API-FACTURAS está verificada contra el código. Necesitamos que cada equipo confirme o corrija su fila.
+
+**Lambdas que entran por el API Gateway.** El handler es solo el ensamblado:
 
 | Lambda (diagrama) | Repo | Ruta base | Handler |
-|---|---|---|---|
-| API-FACTURAS | `api-invoicing-invoices` | `/facturas` ✔ | `Delosi.InvoicingInvoices.Api` ✔ |
-| API-CONFIG-APROBADORES | `api-invoicing-config-approvers` | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
-| API-BANDEJA-APROBACIONES | `api-invoicing-approval-tray` | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
-| API-APROBACIONES | `api-invoicing-approvals` | `/approvals` | `Delosi.InvoicingApprovals.Api` |
-| API-GESTOR | `api-voucher-management` | `/vouchers` | `Delosi.VoucherManagement.Api` |
-| API-MODELOS | `api-voucher-models` | `/voucher-models` | `Delosi.VoucherModels.Api` |
-| API-MOTIVOS | `api-voucher-reasons` | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
-| API-Maestros | `api-master-data-service` | `/master-data` | `Delosi.MasterDataService.Api` |
-| API-MAESTROS API | `api-master-data-sync` | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
-| API-SYNC-VALES | `api-voucher-redemption` | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
-| API-NOTIFICACION | `api-invoicing-notifications` | sin ruta, la dispara SQS | `Delosi.InvoicingNotifications::Delosi.InvoicingNotifications.Functions.NotificationFunction::FunctionHandler` |
-| API-SYNC-FACTURACION | `api-invoicing-sap-sync` | sin ruta, la dispara SQS | `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler` |
-| Generar PDF | `api-document-generation` | sin ruta, la dispara SQS | `Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler` |
-| API-AUDITORIA | (falta repo) | sin ruta, la dispara SQS | `Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler` |
+|:--|:--|:--|:--|
+| API-FACTURAS | api-invoicing-invoices | `/facturas` ✔ | `Delosi.InvoicingInvoices.Api` ✔ |
+| API-CONFIG-APROBADORES | api-invoicing-config-approvers | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
+| API-BANDEJA-APROBACIONES | api-invoicing-approval-tray | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
+| API-APROBACIONES | api-invoicing-approvals | `/approvals` | `Delosi.InvoicingApprovals.Api` |
+| API-GESTOR | api-voucher-management | `/vouchers` | `Delosi.VoucherManagement.Api` |
+| API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` |
+| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
+| API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
+| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
+| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
+
+**Lambdas que dispara SQS.** No tienen ruta. El handler es `Ensamblado::Namespace.Clase::Metodo` y los de la tabla son supuestos (ver punto 5):
+
+| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
+|:--|:--|:--|:--|:--|:--|
+| API-NOTIFICACION | api-invoicing-notifications | a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
+| API-AUDITORIA | (falta repo) | `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
 
 - **Ruta base**: el prefijo con el que empiezan los endpoints de la app. En facturas, por ejemplo, es el `MapGroup("/facturas")`.
-- **Handler**: en las APIs es el nombre del ensamblado del proyecto que se despliega, el `AssemblyName` del `.csproj`. En las de cola es `Ensamblado::Namespace.Clase::Metodo`; los de la tabla son supuestos, el equipo debe dar el real (ver punto 5). Si está mal, la lambda no arranca.
+- **Handler**: en las APIs es el `AssemblyName` del `.csproj` que se despliega. En las de cola se arma uniendo las tres columnas con `::`. Si está mal, la lambda no arranca.
 
 El nombre de cada lambda en AWS está en la tabla de la sección [Lambdas](#lambdas). Ese nombre es el que va en el `.gitlab-ci.yml` de cada repo, en `DEV_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
 
