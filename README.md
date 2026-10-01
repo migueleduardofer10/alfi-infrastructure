@@ -48,14 +48,14 @@ Hoy el mapeo está así. Solo la primera fila está verificada contra el código
 | `api-voucher-reasons` | Delosi-Alfie-Voucher-Reasons-Lambda-Dev | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
 | `api-master-data-service` | Delosi-Alfie-Master-Data-Service-Lambda-Dev | `/master-data` | `Delosi.MasterDataService.Api` |
 | `api-master-data-sync` | Delosi-Alfie-Master-Data-Sync-Lambda-Dev | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
-| `api-invoicing-notifications` | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev | sin ruta | `Delosi.InvoicingNotifications.Api` |
-| `api-voucher-redemption` | Delosi-Alfie-Voucher-Redemption-Lambda-Dev | sin ruta | `Delosi.VoucherRedemption.Api` |
-| `api-invoicing-sap-sync` | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev | sin ruta, la dispara SQS | ver punto 5 |
-| `api-document-generation` | Delosi-Alfie-Document-Generation-Lambda-Dev | sin ruta, la dispara SQS | ver punto 5 |
-| (falta repo) | Delosi-Alfie-Audit-Lambda-Dev | sin ruta, la dispara SQS | ver punto 5 |
+| `api-invoicing-notifications` | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingNotifications::Delosi.InvoicingNotifications.Functions.NotificationFunction::FunctionHandler` |
+| `api-voucher-redemption` | Delosi-Alfie-Voucher-Redemption-Lambda-Dev | `/voucher-redemption` (falta crearla, la llama Micros) | `Delosi.VoucherRedemption.Api` |
+| `api-invoicing-sap-sync` | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler` |
+| `api-document-generation` | Delosi-Alfie-Document-Generation-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler` |
+| (falta repo) | Delosi-Alfie-Audit-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler` |
 
 - **Ruta base**: el prefijo con el que empiezan los endpoints de la app. En facturas, por ejemplo, es el `MapGroup("/facturas")`.
-- **Handler**: el nombre del ensamblado del proyecto que se despliega, el `AssemblyName` del `.csproj`. Si está mal, la lambda no arranca.
+- **Handler**: en las APIs es el nombre del ensamblado del proyecto que se despliega, el `AssemblyName` del `.csproj`. En las de cola es `Ensamblado::Namespace.Clase::Metodo`; los de la tabla son supuestos, el equipo debe dar el real (ver punto 5). Si está mal, la lambda no arranca.
 
 El nombre de la lambda **en prd** es igual, terminado en `-Prd`. Ese nombre es el que va en el `.gitlab-ci.yml` de cada repo, en `DEV_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
 
