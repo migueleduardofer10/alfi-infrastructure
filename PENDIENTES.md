@@ -8,23 +8,34 @@ Faltan datos que este repo no puede inventar. Mientras no estén, los valores so
 
 **1. Falta la lambda de auditoría.** El diagrama tiene API-AUDITORIA pero no hay repo. En Terraform está con el nombre provisional `audit`, conectada a la cola `audit`. Falta el nombre del repo y el handler de cola (punto 5). Se ajusta en el bloque `module "audit"` de `lambdas.tf`.
 
-**2. Dar conformidad a la ruta base y el handler de cada API.** Cada equipo revisa su fila y marca si está bien o qué hay que corregir. Solo API-FACTURAS está verificada contra el código; el resto son supuestos.
+**2. Confirmar la ruta base y el handler de cada lambda.** Solo API-FACTURAS está verificada contra el código; el resto son supuestos. Cada equipo revisa su fila y dice si está bien o qué hay que corregir.
 
 - **Ruta base**: el prefijo con el que empiezan los endpoints de la app, el `MapGroup`. Si no coincide, el gateway responde 404. Se corrige en el `path_part` de `apigateway.tf`.
-- **Handler**: el `AssemblyName` del `.csproj` que se despliega, el mismo valor que `function-handler` en `aws-lambda-tools-defaults.json`. Si no coincide, la lambda no arranca. Se corrige en `lambdas.tf`.
+- **Handler**: en las APIs es el `AssemblyName` del `.csproj` que se despliega, el mismo valor que `function-handler` en `aws-lambda-tools-defaults.json`. En las de cola es `Ensamblado::Namespace.Clase::Metodo` (punto 5). Si no coincide, la lambda no arranca. Se corrige en `lambdas.tf`.
 
-| Lambda (diagrama) | Repo | Ruta base | Handler | Conformidad |
-|:--|:--|:--|:--|:--|
-| API-FACTURAS | api-invoicing-invoices | `/facturas` | `Delosi.InvoicingInvoices.Api` | ✔ verificada |
-| API-CONFIG-APROBADORES | api-invoicing-config-approvers | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` | pendiente |
-| API-BANDEJA-APROBACIONES | api-invoicing-approval-tray | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` | pendiente |
-| API-APROBACIONES | api-invoicing-approvals | `/approvals` | `Delosi.InvoicingApprovals.Api` | pendiente |
-| API-GESTOR | api-voucher-management | `/vouchers` | `Delosi.VoucherManagement.Api` | pendiente |
-| API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` | pendiente |
-| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` | pendiente |
-| API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` | pendiente |
-| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` | pendiente |
-| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` | `Delosi.VoucherRedemption.Api` | pendiente |
+Lambdas de API:
+
+| Lambda (diagrama) | Repo | Ruta base | Handler |
+|:--|:--|:--|:--|
+| API-FACTURAS | api-invoicing-invoices | `/facturas` ✔ | `Delosi.InvoicingInvoices.Api` ✔ |
+| API-CONFIG-APROBADORES | api-invoicing-config-approvers | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
+| API-BANDEJA-APROBACIONES | api-invoicing-approval-tray | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
+| API-APROBACIONES | api-invoicing-approvals | `/approvals` | `Delosi.InvoicingApprovals.Api` |
+| API-GESTOR | api-voucher-management | `/vouchers` | `Delosi.VoucherManagement.Api` |
+| API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` |
+| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
+| API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
+| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
+| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
+
+Lambdas de cola, sin ruta:
+
+| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
+|:--|:--|:--|:--|:--|:--|
+| API-NOTIFICACION | api-invoicing-notifications | a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
+| API-AUDITORIA | (falta repo) | `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
 
 **3. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
 
