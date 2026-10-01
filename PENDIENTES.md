@@ -46,7 +46,25 @@ Lambdas de cola, sin ruta:
 | invoicing-approvals | `Sqs__SapSyncQueueUrl` | `sap-sync` |
 | voucher-management | `Sqs__DocumentGenerationQueueUrl` | `document-generation` |
 
-El nombre de la variable lo propusimos nosotros. Si el código ya lee la URL con otra clave, por ejemplo `config["Queues:Sap"]`, se cambia el nombre en `main.tf` a `Queues__Sap`. No hace falta tocar el código.
+En .NET, una variable de entorno con `__` se lee como una clave con `:`. Es decir, `Sqs__SapSyncQueueUrl` equivale a tener esto en el `appsettings.json`:
+
+```json
+{
+  "Sqs": {
+    "SapSyncQueueUrl": "https://sqs.us-east-1.amazonaws.com/123456789/Delosi-alfie-sap-syncdev"
+  }
+}
+```
+
+Y el código la lee con `config["Sqs:SapSyncQueueUrl"]` o con una clase de opciones enlazada a la sección `Sqs`. En Lambda, la variable de entorno rellena ese valor.
+
+El nombre de la variable lo propusimos nosotros. Cada equipo revisa con qué clave lee la URL de la cola y nos dice en cuál de estos casos está:
+
+| Cómo lo tiene el código | Qué hacer |
+|:--|:--|
+| Lee `Sqs:SapSyncQueueUrl` | Nada, ya coincide. |
+| Lee otra clave, por ejemplo `Queues:Sap` | Nos dicen cuál y cambiamos la variable en `main.tf` a `Queues__Sap`. No hace falta tocar el código. |
+| Todavía no la lee | Que use `Sqs:SapSyncQueueUrl`. |
 
 **5. Handler de las lambdas de cola.** Las cuatro lambdas de cola (notifications, sap-sync, document-generation, audit) tienen un código de entrada distinto al de una API: un método que recibe la lista de mensajes.
 
