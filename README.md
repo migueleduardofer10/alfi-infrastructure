@@ -37,27 +37,27 @@ Así, los endpoints de ese repo quedan como `{url-del-gateway}/voucher-models/cr
 
 Hoy el mapeo está así. Solo la primera fila está verificada contra el código. Necesitamos que cada equipo confirme o corrija su fila:
 
-| Repo | Lambda (dev) | Ruta base | Handler |
+| Lambda (diagrama) | Repo | Ruta base | Handler |
 |---|---|---|---|
-| `api-invoicing-invoices` | Delosi-Alfie-Invoicing-Invoices-Lambda-Dev | `/facturas` ✔ | `Delosi.InvoicingInvoices.Api` ✔ |
-| `api-invoicing-config-approvers` | Delosi-Alfie-Invoicing-Config-Approvers-Lambda-Dev | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
-| `api-invoicing-approval-tray` | Delosi-Alfie-Invoicing-Approval-Tray-Lambda-Dev | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
-| `api-invoicing-approvals` | Delosi-Alfie-Invoicing-Approvals-Lambda-Dev | `/approvals` | `Delosi.InvoicingApprovals.Api` |
-| `api-voucher-management` | Delosi-Alfie-Voucher-Management-Lambda-Dev | `/vouchers` | `Delosi.VoucherManagement.Api` |
-| `api-voucher-models` | Delosi-Alfie-Voucher-Models-Lambda-Dev | `/voucher-models` | `Delosi.VoucherModels.Api` |
-| `api-voucher-reasons` | Delosi-Alfie-Voucher-Reasons-Lambda-Dev | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
-| `api-master-data-service` | Delosi-Alfie-Master-Data-Service-Lambda-Dev | `/master-data` | `Delosi.MasterDataService.Api` |
-| `api-master-data-sync` | Delosi-Alfie-Master-Data-Sync-Lambda-Dev | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
-| `api-invoicing-notifications` | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingNotifications::Delosi.InvoicingNotifications.Functions.NotificationFunction::FunctionHandler` |
-| `api-voucher-redemption` | Delosi-Alfie-Voucher-Redemption-Lambda-Dev | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
-| `api-invoicing-sap-sync` | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler` |
-| `api-document-generation` | Delosi-Alfie-Document-Generation-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler` |
-| (falta repo) | Delosi-Alfie-Audit-Lambda-Dev | sin ruta, la dispara SQS | `Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler` |
+| API-FACTURAS | `api-invoicing-invoices` | `/facturas` ✔ | `Delosi.InvoicingInvoices.Api` ✔ |
+| API-CONFIG-APROBADORES | `api-invoicing-config-approvers` | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
+| API-BANDEJA-APROBACIONES | `api-invoicing-approval-tray` | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
+| API-APROBACIONES | `api-invoicing-approvals` | `/approvals` | `Delosi.InvoicingApprovals.Api` |
+| API-GESTOR | `api-voucher-management` | `/vouchers` | `Delosi.VoucherManagement.Api` |
+| API-MODELOS | `api-voucher-models` | `/voucher-models` | `Delosi.VoucherModels.Api` |
+| API-MOTIVOS | `api-voucher-reasons` | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
+| API-Maestros | `api-master-data-service` | `/master-data` | `Delosi.MasterDataService.Api` |
+| API-MAESTROS API | `api-master-data-sync` | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
+| API-SYNC-VALES | `api-voucher-redemption` | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
+| API-NOTIFICACION | `api-invoicing-notifications` | sin ruta, la dispara SQS | `Delosi.InvoicingNotifications::Delosi.InvoicingNotifications.Functions.NotificationFunction::FunctionHandler` |
+| API-SYNC-FACTURACION | `api-invoicing-sap-sync` | sin ruta, la dispara SQS | `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler` |
+| Generar PDF | `api-document-generation` | sin ruta, la dispara SQS | `Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler` |
+| API-AUDITORIA | (falta repo) | sin ruta, la dispara SQS | `Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler` |
 
 - **Ruta base**: el prefijo con el que empiezan los endpoints de la app. En facturas, por ejemplo, es el `MapGroup("/facturas")`.
 - **Handler**: en las APIs es el nombre del ensamblado del proyecto que se despliega, el `AssemblyName` del `.csproj`. En las de cola es `Ensamblado::Namespace.Clase::Metodo`; los de la tabla son supuestos, el equipo debe dar el real (ver punto 5). Si está mal, la lambda no arranca.
 
-El nombre de la lambda **en prd** es igual, terminado en `-Prd`. Ese nombre es el que va en el `.gitlab-ci.yml` de cada repo, en `DEV_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
+El nombre de cada lambda en AWS está en la tabla de la sección [Lambdas](#lambdas). Ese nombre es el que va en el `.gitlab-ci.yml` de cada repo, en `DEV_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`.
 
 #### 3. Nombre del bucket de documentos
 
