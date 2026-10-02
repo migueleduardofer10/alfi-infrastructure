@@ -47,7 +47,7 @@ Lambda de scheduler, sin ruta:
 |:--|:--|:--|
 | invoicing-approvals | `Sqs__SapSyncQueueUrl` | `sap-sync` |
 | invoicing-approvals | `Sqs__NotificationsQueueUrl` | `notifications` |
-| voucher-management | `Sqs__DocumentGenerationQueueUrl` | `document-generation` |
+| voucher-management | `Sqs__DocumentGenerationQueueUrl` ✔ | `document-generation` |
 
 En .NET, una variable de entorno con `__` se lee como una clave con `:`. Es decir, `Sqs__SapSyncQueueUrl` equivale a tener esto en el `appsettings.json`:
 

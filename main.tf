@@ -92,7 +92,7 @@ locals {
     APP_SECRET_NAME        = var.voucher_management_app_secret_name
 
     # Cola a la que publica los vales generados para que se cree su PDF.
-    # A CONFIRMAR: el nombre de la variable que espera el código.
+    # Nombre de la variable confirmado por el equipo.
     Sqs__DocumentGenerationQueueUrl = module.sqs_queues.queue_urls["document-generation"]
   }
 }
