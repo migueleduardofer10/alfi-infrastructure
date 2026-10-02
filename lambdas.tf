@@ -295,6 +295,15 @@ module "invoicing_notifications" {
   # Envía los correos de facturas y vales por Amazon SES
   enable_ses_permissions = true
 
+  # Consume la cola "notifications" (pedidos de correo que publica invoicing-approvals).
+  sqs_event_sources = [
+    {
+      event_source_arn = module.sqs_queues.queue_arns["notifications"]
+      enabled          = true
+      batch_size       = 1
+    }
+  ]
+
   tracing_mode = "Active"
   tags         = local.common_tags
 }

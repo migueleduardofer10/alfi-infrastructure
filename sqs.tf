@@ -8,6 +8,7 @@
 #
 # Quién publica y quién consume, según el diagrama:
 #   sap-sync            → publica invoicing-approvals (enviar facturas), consume invoicing-sap-sync
+#   notifications       → publica invoicing-approvals (correos),         consume invoicing-notifications
 #   document-generation → publica voucher-management (generar vales),   consume document-generation
 #   audit               → publica EventBridge (sin receta),              consume api-auditoria (sin repo)
 
@@ -24,6 +25,13 @@ module "sqs_queues" {
       max_receive_count          = 3
       create_dlq                 = true
       message_retention_seconds  = 1209600 # 14 días
+    },
+    {
+      name                       = "notifications"
+      visibility_timeout_seconds = 60 # lambda invoicing-notifications: 28 s
+      max_receive_count          = 3
+      create_dlq                 = true
+      message_retention_seconds  = 1209600
     },
     {
       name                       = "document-generation"

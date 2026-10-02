@@ -50,7 +50,7 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distin
 | Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
 | API-MAESTROS API | api-master-data-sync | Scheduler, 6:00 Lima | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
-| API-NOTIFICACION | api-invoicing-notifications | cola a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | cola `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
 | API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
 | Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
 | API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
@@ -88,21 +88,22 @@ Un solo API Gateway REST en `apigateway.tf`. Cada lambda de API cuelga de su rut
 
 La URL base sale en `terraform output api_invoke_url`. Un endpoint queda como `{url-base}/facturas/listar`.
 
-Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 12).
+Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 11).
 
 ### Colas SQS
 
-Tres colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
+Cuatro colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
 
 | Cola | Quién publica | Quién consume | Para qué |
 |:--|:--|:--|:--|
 | `sap-sync` | invoicing-approvals | invoicing-sap-sync | Facturas aprobadas que hay que mandar a SAP |
+| `notifications` | invoicing-approvals | invoicing-notifications | Correos que hay que enviar |
 | `document-generation` | voucher-management | document-generation | Vales a los que hay que generar el PDF |
 | `audit` | EventBridge (sin receta, a definir) | audit | Eventos a auditar |
 
 La conexión cola → consumidor la hace Terraform con `sqs_event_sources` en el bloque de la lambda: AWS lee la cola y le entrega los mensajes a la lambda, que no necesita saber nada de la cola.
 
-El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL le llega como variable de entorno (PENDIENTES.md, punto 4); el permiso todavía no tiene receta (punto 11).
+El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL le llega como variable de entorno (PENDIENTES.md, punto 4); el permiso todavía no tiene receta (punto 10).
 
 ### Permisos extra
 

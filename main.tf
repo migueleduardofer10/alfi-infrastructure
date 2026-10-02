@@ -41,9 +41,10 @@ locals {
     DB_SECRET_NAME         = var.invoicing_approvals_db_secret_name
     APP_SECRET_NAME        = var.invoicing_approvals_app_secret_name
 
-    # Cola a la que publica las facturas aprobadas para enviarlas a SAP.
+    # Colas a las que publica: facturas aprobadas para SAP y pedidos de correo.
     # A CONFIRMAR: el nombre de la variable que espera el código.
-    Sqs__SapSyncQueueUrl = module.sqs_queues.queue_urls["sap-sync"]
+    Sqs__SapSyncQueueUrl       = module.sqs_queues.queue_urls["sap-sync"]
+    Sqs__NotificationsQueueUrl = module.sqs_queues.queue_urls["notifications"]
   }
 }
 

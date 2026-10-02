@@ -32,7 +32,7 @@ Lambdas de cola y de scheduler, sin ruta:
 | Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
 | API-MAESTROS API | api-master-data-sync | Scheduler | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
-| API-NOTIFICACION | api-invoicing-notifications | cola a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | cola `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
 | API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
 | Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
 | API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
@@ -44,6 +44,7 @@ Lambdas de cola y de scheduler, sin ruta:
 | Lambda que publica | Variable de entorno | Cola |
 |:--|:--|:--|
 | invoicing-approvals | `Sqs__SapSyncQueueUrl` | `sap-sync` |
+| invoicing-approvals | `Sqs__NotificationsQueueUrl` | `notifications` |
 | voucher-management | `Sqs__DocumentGenerationQueueUrl` | `document-generation` |
 
 En .NET, una variable de entorno con `__` se lee como una clave con `:`. Es decir, `Sqs__SapSyncQueueUrl` equivale a tener esto en el `appsettings.json`:
@@ -85,21 +86,19 @@ public class SapSyncFunction
 
 Para ese ejemplo el handler es `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler`. Los de la tabla son supuestos: cada equipo confirma el ensamblado, la clase y el método reales. Si alguna hoy está hecha como API, hay que agregarle ese método: una API no entiende el evento de la cola.
 
-**6. Cola de notificaciones.** En el diagrama a API-NOTIFICACION la dispara SQS, pero no está claro qué cola. Hay que definir si consume la de envío a SAP o una cola propia donde publiquen Facturas y Vales. Con eso se agrega la cola en `sqs.tf` y el `sqs_event_sources` en `lambdas.tf`.
-
-**7. Hora del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Está provisional todos los días a las 6:00 Lima. Falta confirmar la hora; se cambia en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
+**6. Hora del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Está provisional todos los días a las 6:00 Lima. Falta confirmar la hora; se cambia en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
 
 ### DevOps
 
-**8. Red de las lambdas.** Los IDs de VPC, subnets y security group están copiados de `api-delosi-integration-infrastructure` sin verificar. Las lambdas necesitan llegar al PostgreSQL de Alfie (puerto 5432), a Secrets Manager y a internet por NAT (IDP del JWT, SAP PI, API Delosi, Micros). Se cambian en `environments/{env}.tfvars`: `vpc_id`, `subnet_id1`, `subnet_id2`, `security_group_id`.
+**7. Red de las lambdas.** Los IDs de VPC, subnets y security group están copiados de `api-delosi-integration-infrastructure` sin verificar. Las lambdas necesitan llegar al PostgreSQL de Alfie (puerto 5432), a Secrets Manager y a internet por NAT (IDP del JWT, SAP PI, API Delosi, Micros). Se cambian en `environments/{env}.tfvars`: `vpc_id`, `subnet_id1`, `subnet_id2`, `security_group_id`.
 
-**9. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-alfie-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
+**8. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-alfie-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
 
-**10. Crear los secretos.** Dos por lambda y por ambiente, con la convención de la sección Secretos del README. La lista completa de nombres está en `environments/{env}.tfvars`.
+**9. Crear los secretos.** Dos por lambda y por ambiente, con la convención de la sección Secretos del README. La lista completa de nombres está en `environments/{env}.tfvars`.
 
-**11. Permiso para publicar en SQS.** La receta de lambda da permiso para leer una cola, no para escribir. invoicing-approvals y voucher-management publican mensajes y, sin ese permiso, AWS responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
+**10. Permiso para publicar en SQS.** La receta de lambda da permiso para leer una cola, no para escribir. invoicing-approvals publica en `sap-sync` y `notifications`, y voucher-management en `document-generation`; sin ese permiso AWS responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
 
-**12. Cómo se autentica Micros.** Micros llama a `/voucher-redemption` sin JWT. Hoy la ruta va abierta. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
+**11. Cómo se autentica Micros.** Micros llama a `/voucher-redemption` sin JWT. Hoy la ruta va abierta. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
 
-**13. Verificar el remitente en SES.** invoicing-notifications ya tiene permiso para enviar correos, pero SES solo envía desde un dominio o correo verificado en la cuenta.
+**12. Verificar el remitente en SES.** invoicing-notifications ya tiene permiso para enviar correos, pero SES solo envía desde un dominio o correo verificado en la cuenta.
 
