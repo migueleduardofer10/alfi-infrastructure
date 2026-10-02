@@ -1,4 +1,4 @@
-# ── Lambdas de Alfie ──────────────────────────────────────────────────
+# ── Lambdas de Ventas Corp ──────────────────────────────────────────────────
 #
 # Un bloque por lambda, con la receta modules/lambda. Cada una tiene su rol IAM y
 # permiso de lectura sobre sus dos secretos. El nombre en AWS queda como

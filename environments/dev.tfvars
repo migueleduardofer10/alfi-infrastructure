@@ -43,4 +43,4 @@ voucher_redemption_db_secret_name          = "delosi-ventascorp-dev/voucher-rede
 voucher_redemption_app_secret_name         = "delosi-ventascorp-dev/voucher-redemption-app"
 
 # ── Storage ───────────────────────────────────────────────────────────
-documents_bucket_name = "delosi-ventascorp-documents-dev"
+documents_bucket_name = "delosi-ventascorp-vales-s3-dev"

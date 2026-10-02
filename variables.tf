@@ -209,7 +209,7 @@ variable "documents_bucket_name" {
 # ── API Gateway ──────────────────────────────────────────────────────
 
 variable "allow_origin" {
-  description = "Origen permitido en CORS del API Gateway. Lo consume el frontend de Alfie; ajustar al dominio real por ambiente"
+  description = "Origen permitido en CORS del API Gateway. Lo consume el frontend de Ventas Corp; ajustar al dominio real por ambiente"
   type        = string
   default     = "'*'"
 }

@@ -1,4 +1,4 @@
-# ── Colas SQS de Alfie ────────────────────────────────────────────────
+# ── Colas SQS de Ventas Corp ────────────────────────────────────────────────
 #
 # Calcado de sqs.tf de api-delosi-integration-infrastructure. Cada cola trae su
 # DLQ: tras max_receive_count intentos fallidos el mensaje pasa a la DLQ.

@@ -1,4 +1,4 @@
-# ── API Gateway: Alfie ────────────────────────────────────────────────
+# ── API Gateway: Ventas Corp ────────────────────────────────────────────────
 #
 # Un solo API Gateway REST para todas las lambdas que se exponen por HTTP, como
 # en el diagrama. Cada lambda cuelga de su propio recurso raíz con integración
@@ -21,7 +21,7 @@ module "api" {
   project                 = var.project
   environment             = var.environment
   api_gateway_name        = "${local.name_prefix}-api"
-  api_gateway_description = "REST API de Alfie: facturación, vales y datos maestros"
+  api_gateway_description = "REST API de Ventas Corp: facturación, vales y datos maestros"
   endpoint_type           = "REGIONAL"
   stage_name              = var.environment
   tags                    = local.common_tags

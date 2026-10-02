@@ -1,6 +1,6 @@
 # ventasCorp-infrastructure
 
-Infraestructura de Alfie en AWS, escrita en Terraform. Crea las 13 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
+Infraestructura de Ventas Corp en AWS, escrita en Terraform. Crea las 13 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
 
 Lo que **no** crea, porque no hay receta: bucket S3, bases de datos, EventBridge, WAF, secretos y la configuración de SES. Eso lo crea DevOps aparte. Lo que falta para el primer despliegue está en [PENDIENTES.md](PENDIENTES.md).
 
