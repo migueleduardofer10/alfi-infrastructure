@@ -49,7 +49,7 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distin
 
 | Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
-| API-MAESTROS API | api-master-data-sync | Scheduler, 6:00 Lima | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
+| API-MAESTROS API | api-master-data-sync | Scheduler, 2 veces al día | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
 | API-NOTIFICACION | api-invoicing-notifications | cola `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
 | API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
 | Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |

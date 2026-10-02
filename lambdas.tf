@@ -250,10 +250,10 @@ module "master_data_sync" {
     var.master_data_sync_app_secret_name,
   ]
 
-  # A CONFIRMAR: la hora. Provisional: todos los días a las 6:00 Lima.
+  # Corre dos veces al día. A CONFIRMAR las horas; provisional: 6:00 y 18:00 Lima.
   enable_scheduler               = true
-  scheduler_description          = "Sincroniza maestros desde el API Delosi, 6:00 AM Lima"
-  schedule_expression            = "cron(0 6 * * ? *)"
+  scheduler_description          = "Sincroniza maestros desde el API Delosi, 6:00 y 18:00 Lima"
+  schedule_expression            = "cron(0 6,18 * * ? *)"
   scheduler_timezone             = "America/Lima"
   scheduler_state                = "ENABLED"
   scheduler_flexible_time_window = { mode = "OFF" }

@@ -86,7 +86,7 @@ public class SapSyncFunction
 
 Para ese ejemplo el handler es `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler`. Los de la tabla son supuestos: cada equipo confirma el ensamblado, la clase y el método reales. Si alguna hoy está hecha como API, hay que agregarle ese método: una API no entiende el evento de la cola.
 
-**6. Hora del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Está provisional todos los días a las 6:00 Lima. Falta confirmar la hora; se cambia en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
+**6. Horas del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Corre dos veces al día; provisional a las 6:00 y 18:00 Lima. Falta confirmar las horas; se cambian en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`, por ejemplo `cron(0 6,18 * * ? *)`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
 
 ### DevOps
 
