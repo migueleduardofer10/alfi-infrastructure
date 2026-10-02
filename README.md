@@ -39,11 +39,11 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay tres tipos según quién las 
 | API-CONFIG-APROBADORES | api-invoicing-config-approvers | `/config-approvers` | `Delosi.InvoicingConfigApprovers.Api` |
 | API-BANDEJA-APROBACIONES | api-invoicing-approval-tray | `/approval-tray` | `Delosi.InvoicingApprovalTray.Api` |
 | API-APROBACIONES | api-invoicing-approvals | `/approvals` | `Delosi.InvoicingApprovals.Api` |
-| API-GESTOR | api-voucher-management | `/vouchers` | `Delosi.VoucherManagement.Api` |
-| API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` |
-| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
+| API-GESTOR | api-voucher-management | `/vouchers` ✔ | `Delosi.Alfie.Voucher.Management.Api` ✔ |
+| API-MODELOS | api-voucher-models | `/voucher-models` ✔ | `Delosi.Alfie.Voucher.Model.Api` ✔ |
+| API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` ✔ | `Delosi.Alfie.Voucher.Reason.Api` ✔ |
 | API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
-| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
+| API-SYNC-VALES | api-voucher-redemption | `/voucher-redemptions` ✔ (la llama Micros) | `Delosi.Alfie.Voucher.Redemption.Api` ✔ |
 
 **Lambdas de cola.** No tienen ruta: las despierta SQS cuando llega un mensaje. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe los mensajes:
 
@@ -61,7 +61,7 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay tres tipos según quién las 
 
 El scheduler lo crea la receta con `enable_scheduler = true` en el bloque de la lambda: arma el schedule en EventBridge Scheduler, el rol que le permite invocarla y la asociación. No hay que crear nada más. Las horas están en `schedule_expression`.
 
-Solo la fila de API-FACTURAS está verificada contra el código. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 1 y 4).
+Las filas con ✔ están confirmadas por su equipo. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 1 y 4).
 
 Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secretos. Las de API tienen timeout de 28 s porque el gateway corta a 29 s.
 
@@ -91,7 +91,7 @@ Un solo API Gateway REST en `apigateway.tf`, `Delosi-VentasCorp-Main-Api-Gateway
 
 La URL base sale en `terraform output api_invoke_url`. Un endpoint queda como `{url-base}/facturas/listar`.
 
-Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 10).
+Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemptions` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 10).
 
 ### Colas SQS
 

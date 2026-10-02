@@ -322,7 +322,7 @@ module "voucher_management" {
   description      = "Gestor de vales: generar vales físicos y digitales, actualizar vigencia"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.VoucherManagement.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.Alfie.Voucher.Management.Api" # confirmado por el equipo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 28
@@ -354,7 +354,7 @@ module "voucher_models" {
   description      = "Modelos de vales: crear, modificar, consultar y listar"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.VoucherModels.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.Alfie.Voucher.Model.Api" # confirmado por el equipo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 28
@@ -386,7 +386,7 @@ module "voucher_reasons" {
   description      = "Motivos de cese para vales: crear, consultar y modificar"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.VoucherReasons.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.Alfie.Voucher.Reason.Api" # confirmado por el equipo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 28
@@ -466,7 +466,7 @@ module "voucher_redemption" {
   description      = "Sincronización con Micros: consulta de vales y redenciones"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.VoucherRedemption.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.Alfie.Voucher.Redemption.Api" # confirmado por el equipo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 28

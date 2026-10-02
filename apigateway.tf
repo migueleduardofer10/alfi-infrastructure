@@ -12,7 +12,7 @@
 # Scheduler. Ninguna recibe llamadas HTTP.
 #
 # El Authorizer es externo a este repo. Los métodos van con authorization = NONE
-# y cada lambda valida el JWT. /voucher-redemption la llama Micros, que no tiene
+# y cada lambda valida el JWT. /voucher-redemptions la llama Micros, que no tiene
 # JWT; cómo se autentica (API key u otro) está por definir, hoy va abierta.
 
 module "api" {
@@ -563,9 +563,9 @@ module "master_data_service_integration_proxy" {
   integration_timeout     = 29000
 }
 
-# ═══ /voucher-redemption → lambda voucher-redemption ═══
+# ═══ /voucher-redemptions → lambda voucher-redemption ═══
 # La llama Micros por HTTPS (consulta y redención de vales). Micros no tiene JWT.
-# A CONFIRMAR: cómo se autentica (API key u otro) y el prefijo de rutas de la app.
+# Ruta base confirmada por el equipo. A CONFIRMAR: cómo se autentica (API key u otro).
 
 module "voucher_redemption_resource" {
   source             = "git::https://gitlab.com/delosi/devops/iac-templates//modules/api-gateway-resource?ref=main"
@@ -574,7 +574,7 @@ module "voucher_redemption_resource" {
   environment        = var.environment
   api_gateway_id     = module.api.api_gateway_id
   parent_resource_id = module.api.root_resource_id
-  path_part          = "voucher-redemption"
+  path_part          = "voucher-redemptions"
 }
 
 module "voucher_redemption_resource_proxy" {
