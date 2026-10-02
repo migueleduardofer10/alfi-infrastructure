@@ -6,12 +6,10 @@ Faltan datos que este repo no puede inventar. Mientras no estén, los valores so
 
 ### Equipo de Alfie
 
-**1. Falta la lambda de auditoría.** El diagrama tiene API-AUDITORIA pero no hay repo. En Terraform está con el nombre provisional `audit`, conectada a la cola `audit`. Falta el nombre del repo y el handler de cola (punto 5). Se ajusta en el bloque `module "audit"` de `lambdas.tf`.
-
-**2. Confirmar la ruta base y el handler de cada lambda.** Solo API-FACTURAS está verificada contra el código; el resto son supuestos. Cada equipo revisa su fila y dice si está bien o qué hay que corregir.
+**1. Confirmar la ruta base y el handler de cada lambda.** Solo API-FACTURAS está verificada contra el código; el resto son supuestos. Cada equipo revisa su fila y dice si está bien o qué hay que corregir.
 
 - **Ruta base**: el prefijo con el que empiezan los endpoints de la app, el `MapGroup`. Si no coincide, el gateway responde 404. Se corrige en el `path_part` de `apigateway.tf`.
-- **Handler**: en las APIs es el `AssemblyName` del `.csproj` que se despliega, el mismo valor que `function-handler` en `aws-lambda-tools-defaults.json`. En las de cola es `Ensamblado::Namespace.Clase::Metodo` (punto 5). Si no coincide, la lambda no arranca. Se corrige en `lambdas.tf`.
+- **Handler**: en las APIs es el `AssemblyName` del `.csproj` que se despliega, el mismo valor que `function-handler` en `aws-lambda-tools-defaults.json`. En las de cola y la de scheduler es `Ensamblado::Namespace.Clase::Metodo` (punto 4). Si no coincide, la lambda no arranca. Se corrige en `lambdas.tf`.
 
 Lambdas de API:
 
@@ -27,19 +25,23 @@ Lambdas de API:
 | API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
 | API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 
-Lambdas de cola y de scheduler, sin ruta:
+Lambdas de cola, sin ruta:
 
-| Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
+| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
-| API-MAESTROS API | api-master-data-sync | Scheduler | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
-| API-NOTIFICACION | api-invoicing-notifications | cola `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
-| API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
-| Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
-| API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
 
-**3. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
+Lambda de scheduler, sin ruta:
 
-**4. Nombre de la variable con la URL de la cola.** Terraform le pasa la URL de la cola a la lambda que publica, como variable de entorno:
+| Lambda (diagrama) | Repo | Horario | Ensamblado | Clase | Método |
+|:--|:--|:--|:--|:--|:--|
+| API-MAESTROS API | api-master-data-sync | 2 veces al día | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
+
+**2. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
+
+**3. Nombre de la variable con la URL de la cola.** Terraform le pasa la URL de la cola a la lambda que publica, como variable de entorno:
 
 | Lambda que publica | Variable de entorno | Cola |
 |:--|:--|:--|
@@ -67,7 +69,7 @@ El nombre de la variable lo propusimos nosotros. Cada equipo revisa con qué cla
 | Lee otra clave, por ejemplo `Queues:Sap` | Nos dicen cuál y cambiamos la variable en `main.tf` a `Queues__Sap`. No hace falta tocar el código. |
 | Todavía no la lee | Que use `Sqs:SapSyncQueueUrl`. |
 
-**5. Handler de las lambdas de cola.** Las cuatro lambdas de cola (notifications, sap-sync, document-generation, audit) tienen un código de entrada distinto al de una API: un método que recibe la lista de mensajes.
+**4. Handler de las lambdas de cola y de scheduler.** Las tres lambdas de cola (notifications, sap-sync, document-generation) y la de scheduler (master-data-sync) tienen un código de entrada distinto al de una API: un método que recibe la lista de mensajes.
 
 ```csharp
 namespace Delosi.InvoicingSapSync.Functions;
@@ -86,19 +88,19 @@ public class SapSyncFunction
 
 Para ese ejemplo el handler es `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync.Functions.SapSyncFunction::FunctionHandler`. Los de la tabla son supuestos: cada equipo confirma el ensamblado, la clase y el método reales. Si alguna hoy está hecha como API, hay que agregarle ese método: una API no entiende el evento de la cola.
 
-**6. Horas del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Corre dos veces al día; provisional a las 6:00 y 18:00 Lima. Falta confirmar las horas; se cambian en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`, por ejemplo `cron(0 6,18 * * ? *)`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
+**5. Horas del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Corre dos veces al día; provisional a las 6:00 y 18:00 Lima. Falta confirmar las horas; se cambian en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`, por ejemplo `cron(0 6,18 * * ? *)`. El handler es de scheduler, no de API (punto 4): el método recibe el JSON del evento, no un request HTTP.
 
 ### DevOps
 
-**7. Red de las lambdas.** Los IDs de VPC, subnets y security group están copiados de `api-delosi-integration-infrastructure` sin verificar. Las lambdas necesitan llegar al PostgreSQL de Alfie (puerto 5432), a Secrets Manager y a internet por NAT (IDP del JWT, SAP PI, API Delosi, Micros). Se cambian en `environments/{env}.tfvars`: `vpc_id`, `subnet_id1`, `subnet_id2`, `security_group_id`.
+**6. Red de las lambdas.** Los IDs de VPC, subnets y security group están copiados de `api-delosi-integration-infrastructure` sin verificar. Las lambdas necesitan llegar al PostgreSQL de Alfie (puerto 5432), a Secrets Manager y a internet por NAT (IDP del JWT, SAP PI, API Delosi, Micros). Se cambian en `environments/{env}.tfvars`: `vpc_id`, `subnet_id1`, `subnet_id2`, `security_group_id`.
 
-**8. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-alfie-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
+**7. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-alfie-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
 
-**9. Crear los secretos.** Dos por lambda y por ambiente, con la convención de la sección Secretos del README. La lista completa de nombres está en `environments/{env}.tfvars`.
+**8. Crear los secretos.** Dos por lambda y por ambiente, con la convención de la sección Secretos del README. La lista completa de nombres está en `environments/{env}.tfvars`.
 
-**10. Permiso para publicar en SQS.** La receta de lambda da permiso para leer una cola, no para escribir. invoicing-approvals publica en `sap-sync` y `notifications`, y voucher-management en `document-generation`; sin ese permiso AWS responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
+**9. Permiso para publicar en SQS.** La receta de lambda da permiso para leer una cola, no para escribir. invoicing-approvals publica en `sap-sync` y `notifications`, y voucher-management en `document-generation`; sin ese permiso AWS responde `AccessDenied`. Hace falta agregar la opción a la receta o definir cómo darlo.
 
-**11. Cómo se autentica Micros.** Micros llama a `/voucher-redemption` sin JWT. Hoy la ruta va abierta. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
+**10. Cómo se autentica Micros.** Micros llama a `/voucher-redemption` sin JWT. Hoy la ruta va abierta. Hay que definir con el equipo de Micros si manda una API key u otra credencial, y con eso se ajusta el método en `apigateway.tf`.
 
-**12. Verificar el remitente en SES.** invoicing-notifications ya tiene permiso para enviar correos, pero SES solo envía desde un dominio o correo verificado en la cuenta.
+**11. Verificar el remitente en SES.** invoicing-notifications ya tiene permiso para enviar correos, pero SES solo envía desde un dominio o correo verificado en la cuenta.
 

@@ -41,8 +41,6 @@ document_generation_db_secret_name         = "delosi-alfie-prd/document-generati
 document_generation_app_secret_name        = "delosi-alfie-prd/document-generation-app"
 voucher_redemption_db_secret_name          = "delosi-alfie-prd/voucher-redemption-db"
 voucher_redemption_app_secret_name         = "delosi-alfie-prd/voucher-redemption-app"
-audit_db_secret_name                       = "delosi-alfie-prd/audit-db"
-audit_app_secret_name                      = "delosi-alfie-prd/audit-app"
 
 # ── Storage ───────────────────────────────────────────────────────────
 documents_bucket_name = "delosi-alfie-documents-prd"

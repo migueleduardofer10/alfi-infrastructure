@@ -132,12 +132,3 @@ locals {
     APP_SECRET_NAME        = var.voucher_redemption_app_secret_name
   }
 }
-
-locals {
-  audit_environment = {
-    ENVIRONMENT            = var.execution_environment
-    ASPNETCORE_ENVIRONMENT = var.execution_environment
-    DB_SECRET_NAME         = var.audit_db_secret_name
-    APP_SECRET_NAME        = var.audit_app_secret_name
-  }
-}

@@ -7,9 +7,9 @@
 #
 # Calcado de apigateway.tf de api-delosi-infrastructure (notifications).
 #
-# Lambdas que NO se exponen: invoicing-notifications, invoicing-sap-sync,
-# document-generation y audit las dispara SQS; master-data-sync la dispara
-# EventBridge Scheduler. Ninguna recibe llamadas HTTP.
+# Lambdas que NO se exponen: invoicing-notifications, invoicing-sap-sync y
+# document-generation las dispara SQS; master-data-sync la dispara EventBridge
+# Scheduler. Ninguna recibe llamadas HTTP.
 #
 # El Authorizer es externo a este repo. Los métodos van con authorization = NONE
 # y cada lambda valida el JWT. /voucher-redemption la llama Micros, que no tiene

@@ -1,6 +1,6 @@
 # alfie-infrastructure
 
-Infraestructura de Alfie en AWS, escrita en Terraform. Crea las 14 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
+Infraestructura de Alfie en AWS, escrita en Terraform. Crea las 13 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
 
 Lo que **no** crea, porque no hay receta: bucket S3, bases de datos, EventBridge, WAF, secretos y la configuración de SES. Eso lo crea DevOps aparte. Lo que falta para el primer despliegue está en [PENDIENTES.md](PENDIENTES.md).
 
@@ -29,7 +29,7 @@ Las credenciales nunca pasan por este repo. Cada lambda lee sus secretos de Secr
 
 ### Lambdas
 
-Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distinto.
+Un bloque `module` por lambda en `lambdas.tf`. Hay tres tipos según quién las dispara. Las de API llevan handler de ensamblado; las de cola y la de scheduler llevan handler de método.
 
 **Lambdas de API.** Las llama el frontend (o Micros) por HTTP a través del API Gateway. El handler es solo el nombre del ensamblado, el `AssemblyName` del `.csproj` que se despliega:
 
@@ -45,19 +45,23 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distin
 | API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
 | API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 
-**Lambdas de cola y de scheduler.** No tienen ruta. A las de cola las despierta SQS cuando llega un mensaje; a la de scheduler la despierta EventBridge Scheduler por horario. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe el evento:
+**Lambdas de cola.** No tienen ruta: las despierta SQS cuando llega un mensaje. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe los mensajes:
 
-| Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
+| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
-| API-MAESTROS API | api-master-data-sync | Scheduler, 2 veces al día | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
-| API-NOTIFICACION | api-invoicing-notifications | cola `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
-| API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
-| Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
-| API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
 
-Solo la fila de API-FACTURAS está verificada contra el código. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 2 y 5).
+**Lambda de scheduler.** No tiene ruta: la despierta EventBridge Scheduler por horario. El handler tiene el mismo formato que las de cola, y el método recibe el JSON del evento:
 
-El scheduler de master-data-sync lo crea la receta con `enable_scheduler = true` en el bloque de la lambda: arma el schedule en EventBridge Scheduler, el rol que le permite invocarla y la asociación. No hay que crear nada más. La hora está en `schedule_expression`.
+| Lambda (diagrama) | Repo | Horario | Ensamblado | Clase | Método |
+|:--|:--|:--|:--|:--|:--|
+| API-MAESTROS API | api-master-data-sync | 2 veces al día | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
+
+El scheduler lo crea la receta con `enable_scheduler = true` en el bloque de la lambda: arma el schedule en EventBridge Scheduler, el rol que le permite invocarla y la asociación. No hay que crear nada más. Las horas están en `schedule_expression`.
+
+Solo la fila de API-FACTURAS está verificada contra el código. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 1 y 4).
 
 Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secretos. Las de API tienen timeout de 28 s porque el gateway corta a 29 s.
 
@@ -78,7 +82,6 @@ Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secreto
 | api-voucher-reasons | Delosi-Alfie-Voucher-Reasons-Lambda-Dev |
 | api-voucher-redemption | Delosi-Alfie-Voucher-Redemption-Lambda-Dev |
 | api-document-generation | Delosi-Alfie-Document-Generation-Lambda-Dev |
-| (falta repo) | Delosi-Alfie-Audit-Lambda-Dev |
 
 ### API Gateway
 
@@ -88,22 +91,21 @@ Un solo API Gateway REST en `apigateway.tf`. Cada lambda de API cuelga de su rut
 
 La URL base sale en `terraform output api_invoke_url`. Un endpoint queda como `{url-base}/facturas/listar`.
 
-Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 11).
+Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lambda valida su JWT. `/voucher-redemption` la llama Micros, que no tiene JWT, y por ahora va abierta (ver [PENDIENTES.md](PENDIENTES.md), punto 10).
 
 ### Colas SQS
 
-Cuatro colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
+Tres colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
 
 | Cola | Quién publica | Quién consume | Para qué |
 |:--|:--|:--|:--|
 | `sap-sync` | invoicing-approvals | invoicing-sap-sync | Facturas aprobadas que hay que mandar a SAP |
 | `notifications` | invoicing-approvals | invoicing-notifications | Correos que hay que enviar |
 | `document-generation` | voucher-management | document-generation | Vales a los que hay que generar el PDF |
-| `audit` | EventBridge (sin receta, a definir) | audit | Eventos a auditar |
 
 La conexión cola → consumidor la hace Terraform con `sqs_event_sources` en el bloque de la lambda: AWS lee la cola y le entrega los mensajes a la lambda, que no necesita saber nada de la cola.
 
-El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL le llega como variable de entorno (PENDIENTES.md, punto 4); el permiso todavía no tiene receta (punto 10).
+El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL le llega como variable de entorno (PENDIENTES.md, punto 3); el permiso todavía no tiene receta (punto 9).
 
 ### Permisos extra
 

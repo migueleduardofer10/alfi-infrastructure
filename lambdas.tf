@@ -452,50 +452,6 @@ module "document_generation" {
   tags         = local.common_tags
 }
 
-# ═══ Auditoría ═══
-
-# ── Lambda: Audit ─
-# A CONFIRMAR: nombre del repo y function_name. Consume la cola "audit".
-
-module "audit" {
-  source           = "git::https://gitlab.com/delosi/devops/iac-templates//modules/lambda?ref=main"
-  company          = var.company
-  project          = var.project
-  environment      = var.environment
-  function_name    = "audit"
-  description      = "Auditoría: logs, trazabilidad e historial de cambios"
-  runtime          = "dotnet8"
-  architecture     = "x86_64"
-  handler          = "Delosi.Audit::Delosi.Audit.Functions.AuditFunction::FunctionHandler" # A CONFIRMAR: lambda de cola, formato Ensamblado::Clase::Metodo
-  source_code_path = var.lambda_source_path
-  memory_size      = 512
-  timeout          = 60
-
-  vpc_id             = var.vpc_id
-  security_group_ids = [var.security_group_id]
-  subnet_ids         = [var.subnet_id1, var.subnet_id2]
-
-  environment_variables = local.audit_environment
-
-  enable_secrets_manager_permissions = true
-  secrets_manager_secret_names = [
-    var.audit_db_secret_name,
-    var.audit_app_secret_name,
-  ]
-
-  # Consume la cola "audit". Varios eventos por invocación: son solo escrituras de log.
-  sqs_event_sources = [
-    {
-      event_source_arn = module.sqs_queues.queue_arns["audit"]
-      enabled          = true
-      batch_size       = 10
-    }
-  ]
-
-  tracing_mode = "Active"
-  tags         = local.common_tags
-}
-
 # ═══ Sincronización Micros ═══
 
 # ── Lambda: Voucher-Redemption ─
