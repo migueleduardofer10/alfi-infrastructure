@@ -51,7 +51,7 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay tres tipos según quién las 
 |:--|:--|:--|:--|:--|:--|
 | API-NOTIFICACION | api-invoicing-notifications | `notifications` | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
 | API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
-| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | `document-generation` | `Delosi.Alfie.Document.Generation.Functions` ✔ | `Delosi.Alfie.Document.Generation.Functions.DocumentGenerationFunction` ✔ | `FunctionHandler` ✔ |
 
 **Lambda de scheduler.** No tiene ruta: la despierta EventBridge Scheduler por horario. El handler tiene el mismo formato que las de cola, y el método recibe el JSON del evento:
 

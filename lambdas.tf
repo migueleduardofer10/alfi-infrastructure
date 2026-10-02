@@ -418,7 +418,7 @@ module "document_generation" {
   description      = "Generación de PDF de vales hacia S3"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.DocumentGeneration::Delosi.DocumentGeneration.Functions.DocumentGenerationFunction::FunctionHandler" # A CONFIRMAR: lambda de cola, formato Ensamblado::Clase::Metodo
+  handler          = "Delosi.Alfie.Document.Generation.Functions::Delosi.Alfie.Document.Generation.Functions.DocumentGenerationFunction::FunctionHandler" # confirmado por el equipo
   source_code_path = var.lambda_source_path
   memory_size      = 1024
   timeout          = 300
