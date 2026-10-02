@@ -1,6 +1,6 @@
 # Pendientes antes del primer despliegue
 
-Lo que falta para poder desplegar [alfie-infrastructure](README.md). Cada punto dice quién lo resuelve y en qué archivo se aplica.
+Lo que falta para poder desplegar [ventasCorp-infrastructure](README.md). Cada punto dice quién lo resuelve y en qué archivo se aplica.
 
 Faltan datos que este repo no puede inventar. Mientras no estén, los valores son supuestos y van marcados con `A CONFIRMAR` en el código.
 

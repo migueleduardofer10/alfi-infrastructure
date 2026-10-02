@@ -1,4 +1,4 @@
-# alfie-infrastructure
+# ventasCorp-infrastructure
 
 Infraestructura de Alfie en AWS, escrita en Terraform. Crea las 13 lambdas, el API Gateway, las colas SQS y los permisos del diagrama de arquitectura. Solo usa las recetas de DevOps en [iac-templates](https://gitlab.com/delosi/devops/iac-templates): aquí no se escriben recursos a mano.
 
