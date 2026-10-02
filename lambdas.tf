@@ -5,11 +5,12 @@
 # Delosi-VentasCorp-{Function-Name}-Lambda-{Env} y es el que va en el .gitlab-ci.yml
 # de cada repo.
 #
-# handler = nombre del ensamblado .NET del proyecto Api. A CONFIRMAR en cada repo:
-# solo el de invoicing-invoices está verificado.
+# handler: en las lambdas de API es el nombre del ensamblado .NET del proyecto;
+# en las de cola y scheduler es Ensamblado::Namespace.Clase::Metodo. A CONFIRMAR
+# en cada repo: solo el de invoicing-invoices está verificado.
 #
-# Lo que NO se gestiona aquí todavía: API Gateway, colas SQS, bucket S3 de PDFs,
-# EventBridge, SES y WAF.
+# El API Gateway está en apigateway.tf y las colas en sqs.tf. Lo que NO se
+# gestiona en este repo por falta de receta: bucket S3, EventBridge, SES y WAF.
 
 # ═══ Facturación ═══
 
