@@ -2,7 +2,7 @@
 #
 # Un bloque por lambda, con la receta modules/lambda. Cada una tiene su rol IAM y
 # permiso de lectura sobre sus dos secretos. El nombre en AWS queda como
-# Delosi-Alfie-{Function-Name}-Lambda-{Env} y es el que va en el .gitlab-ci.yml
+# Delosi-VentasCorp-{Function-Name}-Lambda-{Env} y es el que va en el .gitlab-ci.yml
 # de cada repo.
 #
 # handler = nombre del ensamblado .NET del proyecto Api. A CONFIRMAR en cada repo:

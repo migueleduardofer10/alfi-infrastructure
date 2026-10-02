@@ -39,7 +39,7 @@ Lambda de scheduler, sin ruta:
 |:--|:--|:--|:--|:--|:--|
 | API-MAESTROS API | api-master-data-sync | 2 veces al día | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
 
-**2. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
+**2. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-ventascorp-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
 
 **3. Nombre de la variable con la URL de la cola.** Terraform le pasa la URL de la cola a la lambda que publica, como variable de entorno:
 
@@ -54,7 +54,7 @@ En .NET, una variable de entorno con `__` se lee como una clave con `:`. Es deci
 ```json
 {
   "Sqs": {
-    "SapSyncQueueUrl": "https://sqs.us-east-1.amazonaws.com/123456789/Delosi-alfie-sap-syncdev"
+    "SapSyncQueueUrl": "https://sqs.us-east-1.amazonaws.com/123456789/Delosi-ventasCorp-sap-syncdev"
   }
 }
 ```
@@ -94,7 +94,7 @@ Para ese ejemplo el handler es `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync
 
 **6. Red de las lambdas.** Los IDs de VPC, subnets y security group están copiados de `api-delosi-integration-infrastructure` sin verificar. Las lambdas necesitan llegar al PostgreSQL de Alfie (puerto 5432), a Secrets Manager y a internet por NAT (IDP del JWT, SAP PI, API Delosi, Micros). Se cambian en `environments/{env}.tfvars`: `vpc_id`, `subnet_id1`, `subnet_id2`, `security_group_id`.
 
-**7. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-alfie-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
+**7. Buckets del state de Terraform.** Terraform guarda lo que creó en un bucket S3 que **tiene que existir antes del primer despliegue**; si no, el pipeline falla en `terraform init`. Nombre provisional: `terraform-bucket-delosi-ventascorp-{env}`. Se cambia en `backend-configs/backend-{env}.tfvars`.
 
 **8. Crear los secretos.** Dos por lambda y por ambiente, con la convención de la sección Secretos del README. La lista completa de nombres está en `environments/{env}.tfvars`.
 

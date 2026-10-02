@@ -15,10 +15,10 @@ Cada repo de aplicación (`api-invoicing-invoices`, `api-voucher-models`, etc.) 
 
 Por eso hay dos cosas que tienen que coincidir entre este repo y cada repo app:
 
-1. **El nombre de la lambda.** Terraform la crea como `Delosi-Alfie-{Function-Name}-Lambda-{Env}`, donde `{Function-Name}` es el nombre del repo sin el prefijo `api-`, con mayúscula inicial en cada palabra. Ese mismo nombre va en el `.gitlab-ci.yml` del repo app, en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`. Si no coincide, el pipeline del app compila pero no encuentra dónde desplegar.
+1. **El nombre de la lambda.** Terraform la crea como `Delosi-VentasCorp-{Function-Name}-Lambda-{Env}`, donde `{Function-Name}` es el nombre del repo sin el prefijo `api-`, con mayúscula inicial en cada palabra. Ese mismo nombre va en el `.gitlab-ci.yml` del repo app, en `DEV_AWS_FUNCTION_NAME`, `STG_AWS_FUNCTION_NAME` y `PRD_FUNCTION_NAME`. Si no coincide, el pipeline del app compila pero no encuentra dónde desplegar.
 
    ```
-   repo api-voucher-models  →  Delosi-Alfie-Voucher-Models-Lambda-Dev
+   repo api-voucher-models  →  Delosi-VentasCorp-Voucher-Models-Lambda-Dev
    ```
 
 2. **El handler.** Le dice a AWS qué código ejecutar. Lo fija Terraform y el pipeline del app no lo toca. Si está mal, el despliegue sale en verde pero la lambda falla en cada llamada.
@@ -69,19 +69,19 @@ Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secreto
 
 | Repo | Lambda en dev |
 |:--|:--|
-| api-invoicing-invoices | Delosi-Alfie-Invoicing-Invoices-Lambda-Dev |
-| api-invoicing-config-approvers | Delosi-Alfie-Invoicing-Config-Approvers-Lambda-Dev |
-| api-invoicing-approval-tray | Delosi-Alfie-Invoicing-Approval-Tray-Lambda-Dev |
-| api-invoicing-approvals | Delosi-Alfie-Invoicing-Approvals-Lambda-Dev |
-| api-invoicing-sap-sync | Delosi-Alfie-Invoicing-Sap-Sync-Lambda-Dev |
-| api-invoicing-notifications | Delosi-Alfie-Invoicing-Notifications-Lambda-Dev |
-| api-master-data-sync | Delosi-Alfie-Master-Data-Sync-Lambda-Dev |
-| api-master-data-service | Delosi-Alfie-Master-Data-Service-Lambda-Dev |
-| api-voucher-management | Delosi-Alfie-Voucher-Management-Lambda-Dev |
-| api-voucher-models | Delosi-Alfie-Voucher-Models-Lambda-Dev |
-| api-voucher-reasons | Delosi-Alfie-Voucher-Reasons-Lambda-Dev |
-| api-voucher-redemption | Delosi-Alfie-Voucher-Redemption-Lambda-Dev |
-| api-document-generation | Delosi-Alfie-Document-Generation-Lambda-Dev |
+| api-invoicing-invoices | Delosi-VentasCorp-Invoicing-Invoices-Lambda-Dev |
+| api-invoicing-config-approvers | Delosi-VentasCorp-Invoicing-Config-Approvers-Lambda-Dev |
+| api-invoicing-approval-tray | Delosi-VentasCorp-Invoicing-Approval-Tray-Lambda-Dev |
+| api-invoicing-approvals | Delosi-VentasCorp-Invoicing-Approvals-Lambda-Dev |
+| api-invoicing-sap-sync | Delosi-VentasCorp-Invoicing-Sap-Sync-Lambda-Dev |
+| api-invoicing-notifications | Delosi-VentasCorp-Invoicing-Notifications-Lambda-Dev |
+| api-master-data-sync | Delosi-VentasCorp-Master-Data-Sync-Lambda-Dev |
+| api-master-data-service | Delosi-VentasCorp-Master-Data-Service-Lambda-Dev |
+| api-voucher-management | Delosi-VentasCorp-Voucher-Management-Lambda-Dev |
+| api-voucher-models | Delosi-VentasCorp-Voucher-Models-Lambda-Dev |
+| api-voucher-reasons | Delosi-VentasCorp-Voucher-Reasons-Lambda-Dev |
+| api-voucher-redemption | Delosi-VentasCorp-Voucher-Redemption-Lambda-Dev |
+| api-document-generation | Delosi-VentasCorp-Document-Generation-Lambda-Dev |
 
 ### API Gateway
 
@@ -95,7 +95,7 @@ Los métodos van con `authorization = NONE`: el gateway no valida nada, cada lam
 
 ### Colas SQS
 
-Tres colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-alfie-{cola}{env}`.
+Tres colas en `sqs.tf`, cada una con su DLQ: tras 3 intentos fallidos el mensaje pasa a la cola muerta. Nombre en AWS: `Delosi-ventasCorp-{cola}{env}`.
 
 | Cola | Quién publica | Quién consume | Para qué |
 |:--|:--|:--|:--|
@@ -119,20 +119,20 @@ El que **publica** sí necesita la URL de la cola y permiso de escritura. La URL
 Dos por lambda y por ambiente, creados a mano en Secrets Manager. Los tfvars solo guardan sus nombres, con esta convención:
 
 ```
-delosi-alfie-{env}/{function_name}-db    → conexión a la base
-delosi-alfie-{env}/{function_name}-app   → JWT y demás configuración sensible
+delosi-ventascorp-{env}/{function_name}-db    → conexión a la base
+delosi-ventascorp-{env}/{function_name}-app   → JWT y demás configuración sensible
 ```
 
 La lambda recibe los nombres en `DB_SECRET_NAME` y `APP_SECRET_NAME` y los lee al arrancar. Ejemplo para facturas en dev:
 
-`delosi-alfie-dev/invoicing-invoices-db`
+`delosi-ventascorp-dev/invoicing-invoices-db`
 ```json
 {
   "ConnectionStrings__Postgres": "Host=HOST;Port=5432;Database=invoicing_db;Username=USER;Password=PASSWORD;SSL Mode=VerifyFull;Root Certificate=/var/task/certificates/global-bundle.pem;Pooling=true;Maximum Pool Size=10;Timeout=10;Command Timeout=20;Include Error Detail=false"
 }
 ```
 
-`delosi-alfie-dev/invoicing-invoices-app`
+`delosi-ventascorp-dev/invoicing-invoices-app`
 ```json
 {
   "JwtAuth__Enabled": true,

@@ -7,13 +7,13 @@ variable "company" {
 variable "project" {
   description = "Nombre del proyecto"
   type        = string
-  default     = "alfie"
+  default     = "ventasCorp"
 }
 
 variable "project_name" {
   description = "Project name for resource tagging"
   type        = string
-  default     = "delosi-alfie"
+  default     = "delosi-ventascorp"
 }
 
 variable "aws_region" {
