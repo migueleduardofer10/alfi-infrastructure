@@ -20,7 +20,7 @@ module "api" {
   company                 = var.company
   project                 = var.project
   environment             = var.environment
-  api_gateway_name        = "${local.name_prefix}-api"
+  api_gateway_name        = "main" # la receta arma Delosi-VentasCorp-Main-Api-Gateway-{Env}
   api_gateway_description = "REST API de Ventas Corp: facturación, vales y datos maestros"
   endpoint_type           = "REGIONAL"
   stage_name              = var.environment
@@ -94,14 +94,6 @@ module "invoicing_invoices_integration_proxy" {
   integration_timeout     = 29000
 }
 
-resource "aws_lambda_permission" "invoicing_invoices_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.invoicing_invoices.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
-}
-
 # ═══ /config-approvers → lambda invoicing-config-approvers ═══
 # A CONFIRMAR: debe coincidir con el prefijo de rutas de la app
 
@@ -167,14 +159,6 @@ module "invoicing_config_approvers_integration_proxy" {
   integration_http_method = "POST"
   create_permission       = true
   integration_timeout     = 29000
-}
-
-resource "aws_lambda_permission" "invoicing_config_approvers_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.invoicing_config_approvers.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
 }
 
 # ═══ /approval-tray → lambda invoicing-approval-tray ═══
@@ -244,14 +228,6 @@ module "invoicing_approval_tray_integration_proxy" {
   integration_timeout     = 29000
 }
 
-resource "aws_lambda_permission" "invoicing_approval_tray_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.invoicing_approval_tray.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
-}
-
 # ═══ /approvals → lambda invoicing-approvals ═══
 # A CONFIRMAR: debe coincidir con el prefijo de rutas de la app
 
@@ -317,14 +293,6 @@ module "invoicing_approvals_integration_proxy" {
   integration_http_method = "POST"
   create_permission       = true
   integration_timeout     = 29000
-}
-
-resource "aws_lambda_permission" "invoicing_approvals_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.invoicing_approvals.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
 }
 
 # ═══ /vouchers → lambda voucher-management ═══
@@ -394,14 +362,6 @@ module "voucher_management_integration_proxy" {
   integration_timeout     = 29000
 }
 
-resource "aws_lambda_permission" "voucher_management_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.voucher_management.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
-}
-
 # ═══ /voucher-models → lambda voucher-models ═══
 # A CONFIRMAR: debe coincidir con el prefijo de rutas de la app
 
@@ -467,14 +427,6 @@ module "voucher_models_integration_proxy" {
   integration_http_method = "POST"
   create_permission       = true
   integration_timeout     = 29000
-}
-
-resource "aws_lambda_permission" "voucher_models_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.voucher_models.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
 }
 
 # ═══ /voucher-reasons → lambda voucher-reasons ═══
@@ -544,14 +496,6 @@ module "voucher_reasons_integration_proxy" {
   integration_timeout     = 29000
 }
 
-resource "aws_lambda_permission" "voucher_reasons_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.voucher_reasons.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
-}
-
 # ═══ /master-data → lambda master-data-service ═══
 # A CONFIRMAR: debe coincidir con el prefijo de rutas de la app
 
@@ -617,14 +561,6 @@ module "master_data_service_integration_proxy" {
   integration_http_method = "POST"
   create_permission       = true
   integration_timeout     = 29000
-}
-
-resource "aws_lambda_permission" "master_data_service_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.master_data_service.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
 }
 
 # ═══ /voucher-redemption → lambda voucher-redemption ═══
@@ -693,14 +629,6 @@ module "voucher_redemption_integration_proxy" {
   integration_http_method = "POST"
   create_permission       = true
   integration_timeout     = 29000
-}
-
-resource "aws_lambda_permission" "voucher_redemption_api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.voucher_redemption.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api.execution_arn}/*/*"
 }
 
 # ── Deployment ────────────────────────────────────────────────────────

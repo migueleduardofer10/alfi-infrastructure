@@ -85,7 +85,7 @@ Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secreto
 
 ### API Gateway
 
-Un solo API Gateway REST en `apigateway.tf`. Cada lambda de API cuelga de su ruta base con integración proxy: `/{ruta-base}/{proxy+}` → lambda. El gateway no conoce los endpoints reales, solo manda todo lo que empiece con la ruta base a la lambda, y la app resuelve el resto.
+Un solo API Gateway REST en `apigateway.tf`, `Delosi-VentasCorp-Main-Api-Gateway-{Env}` en AWS. Cada lambda de API cuelga de su ruta base con integración proxy: `/{ruta-base}/{proxy+}` → lambda. El gateway no conoce los endpoints reales, solo manda todo lo que empiece con la ruta base a la lambda, y la app resuelve el resto.
 
 **La ruta base tiene que coincidir con el prefijo de la app.** En facturas, por ejemplo, es el `MapGroup("/facturas")` de `InvoiceEndpoints.cs`. Si la app define `/modelos/crear` pero el gateway usa `/voucher-models`, toda llamada responde 404.
 
