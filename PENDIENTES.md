@@ -25,17 +25,17 @@ Lambdas de API:
 | API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` |
 | API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
 | API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
-| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
 | API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 
-Lambdas de cola, sin ruta:
+Lambdas de cola y de scheduler, sin ruta:
 
-| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
+| Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
-| API-NOTIFICACION | api-invoicing-notifications | a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
-| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
-| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
-| API-AUDITORIA | (falta repo) | `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
+| API-MAESTROS API | api-master-data-sync | Scheduler | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | cola a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
+| API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
 
 **3. Nombre del bucket de documentos.** document-generation guarda los PDF en un bucket que hoy se llama `delosi-alfie-documents-{env}`, un nombre provisional. Falta el nombre real por ambiente. Se cambia en `environments/{env}.tfvars`, variable `documents_bucket_name`.
 
@@ -87,7 +87,7 @@ Para ese ejemplo el handler es `Delosi.InvoicingSapSync::Delosi.InvoicingSapSync
 
 **6. Cola de notificaciones.** En el diagrama a API-NOTIFICACION la dispara SQS, pero no está claro qué cola. Hay que definir si consume la de envío a SAP o una cola propia donde publiquen Facturas y Vales. Con eso se agrega la cola en `sqs.tf` y el `sqs_event_sources` en `lambdas.tf`.
 
-**7. ¿API-MAESTROS API corre por horario?** master-data-sync hoy está en el gateway, en `/master-data-sync`: corre cuando alguien la llama. Si además debe correr sola, por ejemplo todos los días a las 6:00, hace falta un scheduler. Como hoy es una API, no entiende el evento del scheduler: haría falta una segunda lambda con el mismo código y handler de scheduler, como `menu-sync` en `api-delosi-integration-infrastructure`. Falta saber si aplica y a qué hora.
+**7. Hora del scheduler de API-MAESTROS API.** master-data-sync la dispara EventBridge Scheduler, no el gateway. Está provisional todos los días a las 6:00 Lima. Falta confirmar la hora; se cambia en `schedule_expression` del bloque `module "master_data_sync"` en `lambdas.tf`. El handler es de scheduler, no de API (punto 5): el método recibe el JSON del evento, no un request HTTP.
 
 ### DevOps
 

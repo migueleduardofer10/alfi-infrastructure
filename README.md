@@ -43,19 +43,21 @@ Un bloque `module` por lambda en `lambdas.tf`. Hay dos tipos, con handler distin
 | API-MODELOS | api-voucher-models | `/voucher-models` | `Delosi.VoucherModels.Api` |
 | API-MOTIVOS | api-voucher-reasons | `/voucher-reasons` | `Delosi.VoucherReasons.Api` |
 | API-Maestros | api-master-data-service | `/master-data` | `Delosi.MasterDataService.Api` |
-| API-MAESTROS API | api-master-data-sync | `/master-data-sync` | `Delosi.MasterDataSync.Api` |
 | API-SYNC-VALES | api-voucher-redemption | `/voucher-redemption` (la llama Micros) | `Delosi.VoucherRedemption.Api` |
 
-**Lambdas de cola.** No tienen ruta: las despierta SQS cuando llega un mensaje. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe los mensajes:
+**Lambdas de cola y de scheduler.** No tienen ruta. A las de cola las despierta SQS cuando llega un mensaje; a la de scheduler la despierta EventBridge Scheduler por horario. El handler es `Ensamblado::Namespace.Clase::Metodo`, el método que recibe el evento:
 
-| Lambda (diagrama) | Repo | Cola | Ensamblado | Clase | Método |
+| Lambda (diagrama) | Repo | Quién la dispara | Ensamblado | Clase | Método |
 |:--|:--|:--|:--|:--|:--|
-| API-NOTIFICACION | api-invoicing-notifications | a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
-| API-SYNC-FACTURACION | api-invoicing-sap-sync | `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
-| Generar PDF | api-document-generation | `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
-| API-AUDITORIA | (falta repo) | `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
+| API-MAESTROS API | api-master-data-sync | Scheduler, 6:00 Lima | `Delosi.MasterDataSync` | `Delosi.MasterDataSync.Functions.MasterDataSyncFunction` | `FunctionHandler` |
+| API-NOTIFICACION | api-invoicing-notifications | cola a definir | `Delosi.InvoicingNotifications` | `Delosi.InvoicingNotifications.Functions.NotificationFunction` | `FunctionHandler` |
+| API-SYNC-FACTURACION | api-invoicing-sap-sync | cola `sap-sync` | `Delosi.InvoicingSapSync` | `Delosi.InvoicingSapSync.Functions.SapSyncFunction` | `FunctionHandler` |
+| Generar PDF | api-document-generation | cola `document-generation` | `Delosi.DocumentGeneration` | `Delosi.DocumentGeneration.Functions.DocumentGenerationFunction` | `FunctionHandler` |
+| API-AUDITORIA | (falta repo) | cola `audit` | `Delosi.Audit` | `Delosi.Audit.Functions.AuditFunction` | `FunctionHandler` |
 
 Solo la fila de API-FACTURAS está verificada contra el código. El resto son supuestos marcados con `A CONFIRMAR` en `lambdas.tf`: cada equipo debe confirmar su ruta base y su handler ([PENDIENTES.md](PENDIENTES.md), puntos 2 y 5).
+
+El scheduler de master-data-sync lo crea la receta con `enable_scheduler = true` en el bloque de la lambda: arma el schedule en EventBridge Scheduler, el rol que le permite invocarla y la asociación. No hay que crear nada más. La hora está en `schedule_expression`.
 
 Todas corren en VPC, con X-Ray activo y permiso de lectura sobre sus dos secretos. Las de API tienen timeout de 28 s porque el gateway corta a 29 s.
 

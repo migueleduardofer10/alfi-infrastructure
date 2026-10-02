@@ -221,6 +221,8 @@ module "master_data_service" {
 # ═══ Sincronización interna ═══
 
 # ── Lambda: Master-Data-Sync ─
+# La dispara EventBridge Scheduler por horario, no el API Gateway. La receta crea
+# el schedule y el rol que lo deja invocar la lambda.
 
 module "master_data_sync" {
   source           = "git::https://gitlab.com/delosi/devops/iac-templates//modules/lambda?ref=main"
@@ -231,7 +233,7 @@ module "master_data_sync" {
   description      = "Obtención y sincronización de maestros desde el API Delosi: productos, compañía, marcas, campañas"
   runtime          = "dotnet8"
   architecture     = "x86_64"
-  handler          = "Delosi.MasterDataSync.Api" # A CONFIRMAR en el repo
+  handler          = "Delosi.MasterDataSync::Delosi.MasterDataSync.Functions.MasterDataSyncFunction::FunctionHandler" # A CONFIRMAR: lambda de scheduler, formato Ensamblado::Clase::Metodo
   source_code_path = var.lambda_source_path
   memory_size      = 512
   timeout          = 300
@@ -247,6 +249,14 @@ module "master_data_sync" {
     var.master_data_sync_db_secret_name,
     var.master_data_sync_app_secret_name,
   ]
+
+  # A CONFIRMAR: la hora. Provisional: todos los días a las 6:00 Lima.
+  enable_scheduler               = true
+  scheduler_description          = "Sincroniza maestros desde el API Delosi, 6:00 AM Lima"
+  schedule_expression            = "cron(0 6 * * ? *)"
+  scheduler_timezone             = "America/Lima"
+  scheduler_state                = "ENABLED"
+  scheduler_flexible_time_window = { mode = "OFF" }
 
   tracing_mode = "Active"
   tags         = local.common_tags
